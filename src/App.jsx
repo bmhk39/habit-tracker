@@ -30,6 +30,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableHabitItem } from './SortableHabitItem';
 import './App.css';
 
@@ -52,17 +53,22 @@ function App() {
   const snackbarTimeoutRef = useRef(null);
 
   // ===== Dnd Sensors =====
+  // ===== Dnd Sensors =====
   const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
     useSensor(TouchSensor, {
       activationConstraint: {
         delay: 250, // 250ms長押しでドラッグ開始
         tolerance: 5, // 5pxまでの移動は許容
       },
-    })
+    }),
+    useSensor(PointerSensor, { // PCなどでマウス操作する場合の誤操作防止
+      activationConstraint: {
+        distance: 8,
+      }
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   // ===== 認証状態の監視 =====
@@ -570,6 +576,7 @@ function App() {
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
+            modifiers={[restrictToVerticalAxis]}
           >
             <SortableContext
               items={habits.map(h => h.id)}
