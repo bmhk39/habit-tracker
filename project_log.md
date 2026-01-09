@@ -79,6 +79,32 @@ users/{userId}/settings/general
 
 ## セッション履歴
 
+### 2026-01-10 04:00 - 05:30
+
+**実施内容**:
+1. **iOS PWA 入力バグ修正**:
+   - iOS Safari PWAモードで入力フィールドが反応しない問題を解決
+   - 原因: PWAモードにおける暗黙の `user-select: none`、およびタッチイベントの扱い
+   - 解決策: `index.css` にて `user-select: text !important` と `-webkit-touch-callout: default` を適用し、入力エリアの挙動を正常化
+
+2. **PWAの更新挙動強化**:
+   - `vite-plugin-pwa` の `autoUpdate` に加えて、`skipWaiting: true`, `clientsClaim: true` を明示設定
+   - キャッシュによる「修正が反映されない」問題を軽減（タスクキルでの再起動を推奨）
+
+3. **習慣の並び替え機能**:
+   - ライブラリ: `@dnd-kit` (core, sortable, modifiers) 導入
+   - 実装: 長押し＋ドラッグによる並び替え
+   - データ構造: `order` フィールドを追加し、Firestoreで順序を永続化
+
+4. **UXの磨き込み（ネイティブアプリライクな操作感）**:
+   - **長押しセンサーの厳格化**: タッチでは250ms長押し、PC（マウス）では10px移動でドラッグ開始判定とし、誤操作（スクロールやタップ）を防止
+   - **DragOverlay導入**: ドラッグ中のアイテムをリストから切り離し、リッチな視覚効果（拡大、影、不透明度調整）を実現
+   - **垂直軸固定**: `restrictToVerticalAxis` で横ブレを防止し、操作感を安定化
+   - **iOS対策**: ドラッグ対象アイテムに対して `WebkitTouchCallout: none`, `WebkitUserSelect: none` を適用し、長押し時の標準メニューを抑制
+
+**次回やること**:
+- 安定稼働の確認
+
 ### 2026-01-10 03:03 - 03:45
 
 **実施内容**:
