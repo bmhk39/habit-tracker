@@ -335,14 +335,20 @@ header h1 {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
+  /* 入力欄がタップできない問題への対策：最前面に表示 */
+  position: relative;
+  z-index: 50;
 }
 
 .add-form input {
   flex: 1;
   padding: 10px;
-  font-size: 1rem;
+  font-size: 16px;
+  /* iOSズーム防止 */
   border: 1px solid #ddd;
   border-radius: 4px;
+  pointer-events: auto;
+  /* タップを確実に有効化 */
 }
 
 .add-form button {
@@ -352,6 +358,7 @@ header h1 {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 /* 習慣リスト */
