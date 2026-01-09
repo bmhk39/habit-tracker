@@ -15,8 +15,19 @@ export function SortableHabitItem({ habit, todayStr, toggleHabit }) {
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.5 : 1,
-        touchAction: 'none', // ドラッグ操作のためにタッチアクションを制御
+        // ドラッグ中のスタイル強化: ふわっと持ち上がる演出
+        zIndex: isDragging ? 999 : 'auto',
+        scale: isDragging ? '1.05' : '1',
+        boxShadow: isDragging ? '0 10px 20px rgba(0,0,0,0.25)' : '0 1px 3px rgba(0,0,0,0.1)',
+        opacity: isDragging ? 0.95 : 1,
+        cursor: isDragging ? 'grabbing' : 'grab',
+        backgroundColor: '#fff', // 透過しないように背景色指定
+
+        // iOS長押し対策: 拡大鏡やメニューを出さない
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        touchAction: 'none',
     };
 
     return (
