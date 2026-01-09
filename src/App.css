@@ -19,6 +19,51 @@ body {
   margin: 0 auto;
   padding: 20px;
   min-height: 100vh;
+  position: relative;
+}
+
+/* スナックバー（達成通知） */
+.snackbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: #333;
+  color: white;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 2000;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+.snackbar-message {
+  font-size: 0.95rem;
+}
+
+.snackbar-undo {
+  background: transparent;
+  border: none;
+  color: #4fc3f7;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 5px 10px;
+  font-weight: bold;
+}
+
+.snackbar-undo:hover {
+  text-decoration: underline;
 }
 
 /* ヘッダー */

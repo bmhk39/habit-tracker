@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { auth, googleProvider, db } from './firebase';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import {
@@ -24,10 +24,12 @@ function App() {
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [loading, setLoading] = useState(true);
-  // 設定メニューの開閉状態
   const [showSettings, setShowSettings] = useState(false);
-  // 日付切り替え時刻（0〜23の整数、デフォルトは4時）
   const [dayStartHour, setDayStartHour] = useState(4);
+
+  // スナックバー用の状態
+  const [snackbar, setSnackbar] = useState(null);
+  const snackbarTimeoutRef = useRef(null);
 
   // ===== 認証状態の監視 =====
   useEffect(() => {
@@ -49,6 +51,38 @@ function App() {
     }
   }, [user]);
 
+  // ===== スナックバーのクリーンアップ =====
+  useEffect(() => {
+    return () => {
+      if (snackbarTimeoutRef.current) {
+        clearTimeout(snackbarTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // ===== スナックバーを表示 =====
+  const showSnackbar = (message, habitId, habitName) => {
+    // 既存のタイムアウトをクリア
+    if (snackbarTimeoutRef.current) {
+      clearTimeout(snackbarTimeoutRef.current);
+    }
+
+    setSnackbar({ message, habitId, habitName });
+
+    // 5秒後に自動で消す
+    snackbarTimeoutRef.current = setTimeout(() => {
+      setSnackbar(null);
+    }, 5000);
+  };
+
+  // ===== スナックバーを閉じる =====
+  const hideSnackbar = () => {
+    if (snackbarTimeoutRef.current) {
+      clearTimeout(snackbarTimeoutRef.current);
+    }
+    setSnackbar(null);
+  };
+
   // ===== 設定を読み込む =====
   const loadSettings = async () => {
     try {
@@ -67,6 +101,12 @@ function App() {
 
   // ===== 設定を保存する =====
   const saveSettings = async (newDayStartHour) => {
+    // 警告を表示
+    const confirmed = confirm(
+      '日付切り替え時刻を変更すると、「今日」として表示される記録が変わる可能性があります。\n\n本当に変更しますか？'
+    );
+    if (!confirmed) return;
+
     try {
       const settingsRef = doc(db, 'users', user.uid, 'settings', 'general');
       await setDoc(settingsRef, {
@@ -169,7 +209,6 @@ function App() {
   // ===== 今日の日付を取得（dayStartHourを考慮）=====
   const getTodayString = () => {
     const now = new Date();
-    // 現在時刻がdayStartHour未満なら、前日として扱う
     if (now.getHours() < dayStartHour) {
       now.setDate(now.getDate() - 1);
     }
@@ -180,7 +219,6 @@ function App() {
   const getPast7Days = () => {
     const days = [];
     const now = new Date();
-    // 現在時刻がdayStartHour未満なら、前日として扱う
     if (now.getHours() < dayStartHour) {
       now.setDate(now.getDate() - 1);
     }
@@ -192,24 +230,69 @@ function App() {
     return days;
   };
 
-  // ===== 今日の記録を切り替える =====
-  const handleToggleToday = async (habit) => {
+  // ===== 達成を記録する =====
+  const markAsDone = async (habit) => {
     const todayStr = getTodayString();
-    const currentLogs = habit.logs || {};
-    const newDone = !currentLogs[todayStr]?.done;
 
     try {
       const habitRef = doc(db, 'users', user.uid, 'habits', habit.id);
       await updateDoc(habitRef, {
         [`logs.${todayStr}`]: {
-          done: newDone,
-          completedAt: newDone ? new Date().toISOString() : null
+          done: true,
+          completedAt: new Date().toISOString()
         }
       });
       loadHabits();
+      // スナックバーを表示
+      showSnackbar(`✓ ${habit.name} を達成しました！`, habit.id, habit.name);
     } catch (error) {
       console.error('記録の更新エラー:', error);
       alert('記録の更新に失敗しました');
+    }
+  };
+
+  // ===== 達成を取り消す =====
+  const undoComplete = async (habitId) => {
+    const todayStr = getTodayString();
+
+    try {
+      const habitRef = doc(db, 'users', user.uid, 'habits', habitId);
+      await updateDoc(habitRef, {
+        [`logs.${todayStr}`]: {
+          done: false,
+          completedAt: null
+        }
+      });
+      loadHabits();
+      hideSnackbar();
+    } catch (error) {
+      console.error('記録の更新エラー:', error);
+      alert('記録の更新に失敗しました');
+    }
+  };
+
+  // ===== ボタンクリック時の処理 =====
+  const handleToggleToday = async (habit) => {
+    const todayStr = getTodayString();
+    const currentLogs = habit.logs || {};
+    const isDone = currentLogs[todayStr]?.done;
+
+    if (isDone) {
+      // 既に達成済み → 確認ダイアログを表示して取り消し
+      const confirmed = confirm(`「${habit.name}」の本日の記録を取り消しますか？`);
+      if (confirmed) {
+        await undoComplete(habit.id);
+      }
+    } else {
+      // 未達成 → 達成を記録
+      await markAsDone(habit);
+    }
+  };
+
+  // ===== スナックバーから取り消し（確認なし） =====
+  const handleSnackbarUndo = () => {
+    if (snackbar?.habitId) {
+      undoComplete(snackbar.habitId);
     }
   };
 
@@ -237,6 +320,16 @@ function App() {
 
   return (
     <div className="app">
+      {/* スナックバー */}
+      {snackbar && (
+        <div className="snackbar">
+          <span className="snackbar-message">{snackbar.message}</span>
+          <button className="snackbar-undo" onClick={handleSnackbarUndo}>
+            取り消す
+          </button>
+        </div>
+      )}
+
       <header>
         <h1>習慣トラッカー</h1>
         <button
