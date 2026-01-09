@@ -65,6 +65,119 @@ header h1 {
   font-size: 0.8rem;
   border-radius: 4px;
   cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.logout-button:hover {
+  background-color: #f0f0f0;
+}
+
+/* 設定ボタン */
+.settings-button {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+.settings-button:hover {
+  background-color: #eee;
+}
+
+/* 設定メニュー オーバーレイ */
+.settings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* 設定メニュー */
+.settings-menu {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.settings-header h2 {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.settings-header button {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.settings-content {
+  padding: 20px;
+}
+
+.setting-item {
+  margin-bottom: 20px;
+}
+
+.setting-item label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.setting-description {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.setting-item select {
+  width: 100%;
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.settings-footer {
+  padding: 20px;
+  border-top: 1px solid #eee;
+  text-align: center;
+}
+
+.user-info-settings {
+  margin-bottom: 10px;
+}
+
+.user-info-settings span {
+  display: block;
+}
+
+.user-email {
+  font-size: 0.85rem;
+  color: #666;
 }
 
 /* 習慣追加フォーム */
@@ -111,7 +224,7 @@ header h1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .habit-main {

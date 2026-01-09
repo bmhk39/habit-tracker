@@ -8,6 +8,8 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  getDoc,
+  setDoc,
   query,
   orderBy,
   serverTimestamp
@@ -16,38 +18,66 @@ import './App.css';
 
 function App() {
   // ===== 状態管理 =====
-  // user: ログイン中のユーザー情報（nullならログアウト状態）
   const [user, setUser] = useState(null);
-  // habits: 習慣の一覧
   const [habits, setHabits] = useState([]);
-  // newHabitName: 新しい習慣の入力値
   const [newHabitName, setNewHabitName] = useState('');
-  // editingId: 編集中の習慣ID（nullなら編集モードではない）
   const [editingId, setEditingId] = useState(null);
-  // editingName: 編集中の習慣名
   const [editingName, setEditingName] = useState('');
-  // loading: データ読み込み中かどうか
   const [loading, setLoading] = useState(true);
+  // 設定メニューの開閉状態
+  const [showSettings, setShowSettings] = useState(false);
+  // 日付切り替え時刻（0〜23の整数、デフォルトは4時）
+  const [dayStartHour, setDayStartHour] = useState(4);
 
   // ===== 認証状態の監視 =====
-  // ページを開いた時、ログイン状態を確認する
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
     });
-    // クリーンアップ（コンポーネントが消える時に監視を解除）
     return () => unsubscribe();
   }, []);
 
-  // ===== ユーザーが変わったら習慣を読み込む =====
+  // ===== ユーザーが変わったら習慣と設定を読み込む =====
   useEffect(() => {
     if (user) {
       loadHabits();
+      loadSettings();
     } else {
       setHabits([]);
+      setDayStartHour(4);
     }
   }, [user]);
+
+  // ===== 設定を読み込む =====
+  const loadSettings = async () => {
+    try {
+      const settingsRef = doc(db, 'users', user.uid, 'settings', 'general');
+      const settingsDoc = await getDoc(settingsRef);
+      if (settingsDoc.exists()) {
+        const data = settingsDoc.data();
+        if (data.dayStartHour !== undefined) {
+          setDayStartHour(data.dayStartHour);
+        }
+      }
+    } catch (error) {
+      console.error('設定の読み込みエラー:', error);
+    }
+  };
+
+  // ===== 設定を保存する =====
+  const saveSettings = async (newDayStartHour) => {
+    try {
+      const settingsRef = doc(db, 'users', user.uid, 'settings', 'general');
+      await setDoc(settingsRef, {
+        dayStartHour: newDayStartHour
+      }, { merge: true });
+      setDayStartHour(newDayStartHour);
+    } catch (error) {
+      console.error('設定の保存エラー:', error);
+      alert('設定の保存に失敗しました');
+    }
+  };
 
   // ===== Googleでログイン =====
   const handleLogin = async () => {
@@ -63,6 +93,7 @@ function App() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      setShowSettings(false);
     } catch (error) {
       console.error('ログアウトエラー:', error);
     }
@@ -96,7 +127,7 @@ function App() {
         createdAt: serverTimestamp()
       });
       setNewHabitName('');
-      loadHabits(); // 一覧を再読み込み
+      loadHabits();
     } catch (error) {
       console.error('習慣の追加エラー:', error);
       alert('習慣の追加に失敗しました');
@@ -135,10 +166,30 @@ function App() {
     }
   };
 
-  // ===== 今日の日付を取得 =====
+  // ===== 今日の日付を取得（dayStartHourを考慮）=====
   const getTodayString = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0]; // "2026-01-10" 形式
+    const now = new Date();
+    // 現在時刻がdayStartHour未満なら、前日として扱う
+    if (now.getHours() < dayStartHour) {
+      now.setDate(now.getDate() - 1);
+    }
+    return now.toISOString().split('T')[0];
+  };
+
+  // ===== 過去7日間の日付を取得（dayStartHourを考慮）=====
+  const getPast7Days = () => {
+    const days = [];
+    const now = new Date();
+    // 現在時刻がdayStartHour未満なら、前日として扱う
+    if (now.getHours() < dayStartHour) {
+      now.setDate(now.getDate() - 1);
+    }
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      days.push(date.toISOString().split('T')[0]);
+    }
+    return days;
   };
 
   // ===== 今日の記録を切り替える =====
@@ -182,18 +233,60 @@ function App() {
 
   // ===== ログイン済みの場合 =====
   const todayStr = getTodayString();
+  const past7Days = getPast7Days();
 
   return (
     <div className="app">
       <header>
         <h1>習慣トラッカー</h1>
-        <div className="user-info">
-          <span>{user.displayName}</span>
-          <button onClick={handleLogout} className="logout-button">
-            ログアウト
-          </button>
-        </div>
+        <button
+          className="settings-button"
+          onClick={() => setShowSettings(true)}
+        >
+          ⚙
+        </button>
       </header>
+
+      {/* 設定メニュー */}
+      {showSettings && (
+        <div className="settings-overlay" onClick={() => setShowSettings(false)}>
+          <div className="settings-menu" onClick={(e) => e.stopPropagation()}>
+            <div className="settings-header">
+              <h2>設定</h2>
+              <button onClick={() => setShowSettings(false)}>✕</button>
+            </div>
+
+            <div className="settings-content">
+              <div className="setting-item">
+                <label>1日の開始時刻</label>
+                <p className="setting-description">
+                  この時刻を過ぎると「翌日」として扱われます
+                </p>
+                <select
+                  value={dayStartHour}
+                  onChange={(e) => saveSettings(Number(e.target.value))}
+                >
+                  {[...Array(24)].map((_, hour) => (
+                    <option key={hour} value={hour}>
+                      {hour}:00
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="settings-footer">
+              <div className="user-info-settings">
+                <span>{user.displayName}</span>
+                <span className="user-email">{user.email}</span>
+              </div>
+              <button onClick={handleLogout} className="logout-button">
+                ログアウト
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 習慣追加フォーム */}
       <form onSubmit={handleAddHabit} className="add-form">
@@ -263,10 +356,7 @@ function App() {
               <div key={habit.id} className="log-row">
                 <span className="log-habit-name">{habit.name}</span>
                 <div className="log-days">
-                  {[...Array(7)].map((_, i) => {
-                    const date = new Date();
-                    date.setDate(date.getDate() - (6 - i));
-                    const dateStr = date.toISOString().split('T')[0];
+                  {past7Days.map((dateStr) => {
                     const done = habit.logs?.[dateStr]?.done;
                     return (
                       <span
