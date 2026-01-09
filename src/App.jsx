@@ -12,8 +12,25 @@ import {
   setDoc,
   query,
   orderBy,
-  serverTimestamp
+  serverTimestamp,
+  writeBatch
 } from 'firebase/firestore';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { SortableHabitItem } from './SortableHabitItem';
 import './App.css';
 
 function App() {
@@ -33,6 +50,20 @@ function App() {
   // スナックバー用の状態
   const [snackbar, setSnackbar] = useState(null);
   const snackbarTimeoutRef = useRef(null);
+
+  // ===== Dnd Sensors =====
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250, // 250ms長押しでドラッグ開始
+        tolerance: 5, // 5pxまでの移動は許容
+      },
+    })
+  );
 
   // ===== 認証状態の監視 =====
   useEffect(() => {
@@ -143,12 +174,28 @@ function App() {
   const loadHabits = async () => {
     try {
       const habitsRef = collection(db, 'users', user.uid, 'habits');
-      const q = query(habitsRef, orderBy('createdAt', 'desc'));
+      // orderでソートするため、一括取得後にメモリ上でソートする方式を採用
+      // (データ量が少ないためこれで十分かつ、既存データにorderがない場合も安全)
+      const q = query(habitsRef);
       const snapshot = await getDocs(q);
+
       const habitsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+
+      // メモリ上でソート
+      habitsData.sort((a, b) => {
+        // orderがある場合はそれを優先
+        if (a.order !== undefined && b.order !== undefined) {
+          return a.order - b.order;
+        }
+        // orderがない場合は作成日順（新しい順）
+        const timeA = a.createdAt?.seconds || 0;
+        const timeB = b.createdAt?.seconds || 0;
+        return timeB - timeA;
+      });
+
       setHabits(habitsData);
     } catch (error) {
       console.error('習慣の読み込みエラー:', error);
@@ -160,11 +207,17 @@ function App() {
     e.preventDefault();
     if (!newHabitName.trim()) return;
 
+    // 現在の最大orderを取得して、その次に追加する
+    const nextOrder = habits.length > 0
+      ? Math.max(...habits.map(h => (h.order !== undefined ? h.order : -1))) + 1
+      : 0;
+
     try {
       const habitsRef = collection(db, 'users', user.uid, 'habits');
       await addDoc(habitsRef, {
         name: newHabitName.trim(),
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        order: nextOrder
       });
       setNewHabitName('');
       loadHabits();
@@ -203,6 +256,42 @@ function App() {
     } catch (error) {
       console.error('習慣の削除エラー:', error);
       alert('習慣の削除に失敗しました');
+    }
+  };
+
+  // ===== ドラッグ終了時の処理（並び替え保存） =====
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      // 古いインデックスと新しいインデックスを取得
+      const oldIndex = habits.findIndex((habit) => habit.id === active.id);
+      const newIndex = habits.findIndex((habit) => habit.id === over.id);
+
+      // 配列を並び替え
+      const newHabits = arrayMove(habits, oldIndex, newIndex);
+
+      // order値を更新（0から振り直す）
+      const updatedHabits = newHabits.map((habit, index) => ({
+        ...habit,
+        order: index
+      }));
+
+      // 画面を即時更新
+      setHabits(updatedHabits);
+
+      // Firebaseに保存（バッチ更新）
+      try {
+        const batch = writeBatch(db);
+        updatedHabits.forEach((habit) => {
+          const habitRef = doc(db, 'users', user.uid, 'habits', habit.id);
+          batch.update(habitRef, { order: habit.order });
+        });
+        await batch.commit();
+      } catch (error) {
+        console.error('並び替え保存エラー:', error);
+        // エラー時は必要なら元の順序に戻す処理を入れる
+      }
     }
   };
 
@@ -472,24 +561,30 @@ function App() {
         <button type="submit">追加</button>
       </form>
 
-      {/* 習慣一覧（シンプル版） */}
+      {/* 習慣一覧（並び替え可能） */}
       <div className="habits-list">
         {habits.length === 0 ? (
           <p className="empty-message">習慣がまだありません。上のフォームから追加してください。</p>
         ) : (
-          habits.map((habit) => (
-            <div key={habit.id} className="habit-item">
-              <div className="habit-main">
-                <button
-                  className={`toggle-button ${habit.logs?.[todayStr]?.done ? 'done' : ''}`}
-                  onClick={() => handleToggleToday(habit)}
-                >
-                  {habit.logs?.[todayStr]?.done ? '✓' : '○'}
-                </button>
-                <span className="habit-name">{habit.name}</span>
-              </div>
-            </div>
-          ))
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={habits.map(h => h.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {habits.map((habit) => (
+                <SortableHabitItem
+                  key={habit.id}
+                  habit={habit}
+                  todayStr={todayStr}
+                  toggleHabit={handleToggleToday}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
