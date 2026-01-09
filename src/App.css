@@ -327,19 +327,14 @@ header h1 {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
-  position: relative;
-  z-index: 10;
 }
 
 .add-form input {
   flex: 1;
   padding: 10px;
-  font-size: 16px;
-  /* iOSでのズーム防止のため16px推奨 */
+  font-size: 1rem;
   border: 1px solid #ddd;
   border-radius: 4px;
-  appearance: none;
-  /* iOSのデフォルトスタイルをリセット */
 }
 
 .add-form button {
@@ -349,7 +344,6 @@ header h1 {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 1rem;
 }
 
 /* 習慣リスト */
