@@ -150,7 +150,10 @@ function App() {
     try {
       const habitRef = doc(db, 'users', user.uid, 'habits', habit.id);
       await updateDoc(habitRef, {
-        [`logs.${todayStr}`]: { done: newDone }
+        [`logs.${todayStr}`]: {
+          done: newDone,
+          completedAt: newDone ? new Date().toISOString() : null
+        }
       });
       loadHabits();
     } catch (error) {
