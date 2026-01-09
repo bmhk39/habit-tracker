@@ -2,7 +2,7 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-export function SortableHabitItem({ habit, todayStr, toggleHabit }) {
+export function SortableHabitItem({ habit, todayStr, toggleHabit, isOverlay }) {
     const {
         attributes,
         listeners,
@@ -12,22 +12,43 @@ export function SortableHabitItem({ habit, todayStr, toggleHabit }) {
         isDragging,
     } = useSortable({ id: habit.id });
 
+    // Overlay（ドラッグ中の浮いている要素）のスタイル
+    if (isOverlay) {
+        return (
+            <div
+                className="habit-item"
+                style={{
+                    transform: 'scale(1.05)',
+                    boxShadow: '0 10px 20px rgba(0,0,0,0.25)',
+                    cursor: 'grabbing',
+                    backgroundColor: '#fff',
+                    zIndex: 999,
+                    WebkitTouchCallout: 'none',
+                    WebkitUserSelect: 'none',
+                    userSelect: 'none',
+                    touchAction: 'none',
+                }}
+            >
+                <div className="habit-main">
+                    {/* Overlay中はボタン操作無効なので見た目だけ */}
+                    <button
+                        className={`toggle-button ${habit.logs?.[todayStr]?.done ? 'done' : ''}`}
+                    >
+                        {habit.logs?.[todayStr]?.done ? '✓' : '○'}
+                    </button>
+                    <span className="habit-name">{habit.name}</span>
+                </div>
+            </div>
+        );
+    }
+
+    // 通常のリストアイテム（ドラッグ中はプレースホルダーになる）
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        // ドラッグ中のスタイル強化: ふわっと持ち上がる演出
-        zIndex: isDragging ? 999 : 'auto',
-        scale: isDragging ? '1.05' : '1',
-        boxShadow: isDragging ? '0 10px 20px rgba(0,0,0,0.25)' : '0 1px 3px rgba(0,0,0,0.1)',
-        opacity: isDragging ? 0.95 : 1,
-        cursor: isDragging ? 'grabbing' : 'grab',
-        backgroundColor: '#fff', // 透過しないように背景色指定
-
-        // iOS長押し対策: 拡大鏡やメニューを出さない
-        WebkitTouchCallout: 'none',
-        WebkitUserSelect: 'none',
-        userSelect: 'none',
-        touchAction: 'none',
+        opacity: isDragging ? 0.3 : 1, // ドラッグ元の場所は薄く表示
+        touchAction: 'none', // スクロール干渉防止
+        WebkitTouchCallout: 'none', // iOS長押しメニュー防止
     };
 
     return (
@@ -42,14 +63,9 @@ export function SortableHabitItem({ habit, todayStr, toggleHabit }) {
                 <button
                     className={`toggle-button ${habit.logs?.[todayStr]?.done ? 'done' : ''}`}
                     onClick={(e) => {
-                        // ドラッグ用のイベントと競合しないように
                         e.stopPropagation();
                         toggleHabit(habit);
                     }}
-                // ボタン部分はドラッグのハンドルにならないようにする（dnd-kitはデフォルトで要素全体がハンドルになるため、
-                // 本当はハンドル専用アイコンを作ると良いが、今回は「長押し」で全体をドラッグ可能にする方針なのでこのままでもOK。
-                // ただし、ボタンタップがドラッグ開始と誤認されないよう、e.stopPropagation() は必須ではないが、
-                // ActivationConstraint (delay) を設定すればタップはタップとして認識される。
                 >
                     {habit.logs?.[todayStr]?.done ? '✓' : '○'}
                 </button>

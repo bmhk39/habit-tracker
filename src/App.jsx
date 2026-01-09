@@ -19,8 +19,9 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
+  DragOverlay,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -49,10 +50,13 @@ function App() {
   const [editingName, setEditingName] = useState('');
 
   // スナックバー用の状態
+  // スナックバー用の状態
   const [snackbar, setSnackbar] = useState(null);
   const snackbarTimeoutRef = useRef(null);
 
-  // ===== Dnd Sensors =====
+  // ドラッグ中のアイテム
+  const [activeId, setActiveId] = useState(null);
+
   // ===== Dnd Sensors =====
   const sensors = useSensors(
     useSensor(TouchSensor, {
@@ -61,9 +65,9 @@ function App() {
         tolerance: 5, // 5pxまでの移動は許容
       },
     }),
-    useSensor(PointerSensor, { // PCなどでマウス操作する場合の誤操作防止
+    useSensor(MouseSensor, { // PCなどでマウス操作する場合
       activationConstraint: {
-        distance: 8,
+        distance: 10, // 10px動くまでドラッグ開始しない
       }
     }),
     useSensor(KeyboardSensor, {
@@ -265,9 +269,27 @@ function App() {
     }
   };
 
+  // ===== ドラッグ開始 =====
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id);
+  };
+
+  // ===== ドラッグキャンセル =====
+  const handleDragCancel = () => {
+    setActiveId(null);
+  };
+
   // ===== ドラッグ終了時の処理（並び替え保存） =====
   const handleDragEnd = async (event) => {
     const { active, over } = event;
+
+    // ドラッグ終了時にIDをリセット
+    setActiveId(null);
+
+    // ドロップ先がない、または同じ場所なら終了
+    if (!over || active.id === over.id) {
+      return;
+    }
 
     if (active.id !== over.id) {
       // 古いインデックスと新しいインデックスを取得
@@ -575,7 +597,9 @@ function App() {
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
             modifiers={[restrictToVerticalAxis]}
           >
             <SortableContext
@@ -591,6 +615,17 @@ function App() {
                 />
               ))}
             </SortableContext>
+
+            <DragOverlay>
+              {activeId ? (
+                <SortableHabitItem
+                  habit={habits.find(h => h.id === activeId)}
+                  todayStr={todayStr}
+                  toggleHabit={() => { }}
+                  isOverlay
+                />
+              ) : null}
+            </DragOverlay>
           </DndContext>
         )}
       </div>
