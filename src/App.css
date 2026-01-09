@@ -225,6 +225,103 @@ header h1 {
   color: #666;
 }
 
+/* 設定リンクボタン */
+.setting-link-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.setting-link-button:hover {
+  background-color: #eee;
+}
+
+/* 習慣管理画面 */
+.habit-manager {
+  max-height: 90vh;
+}
+
+.habit-manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.habit-manager-item {
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.habit-manager-name {
+  font-size: 1rem;
+}
+
+.habit-manager-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.habit-manager-actions button {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.habit-manager-actions button:hover {
+  background: #f0f0f0;
+}
+
+.habit-manager-actions .delete-button {
+  color: #e53935;
+  border-color: #e53935;
+}
+
+.habit-manager-actions .delete-button:hover {
+  background-color: #ffebee;
+}
+
+/* 習慣編集モード */
+.habit-manager-edit {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.habit-manager-edit input {
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.habit-manager-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.habit-manager-edit-actions button {
+  flex: 1;
+  padding: 8px;
+  font-size: 0.9rem;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 /* 習慣追加フォーム */
 .add-form {
   display: flex;

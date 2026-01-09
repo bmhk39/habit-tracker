@@ -21,11 +21,14 @@ function App() {
   const [user, setUser] = useState(null);
   const [habits, setHabits] = useState([]);
   const [newHabitName, setNewHabitName] = useState('');
-  const [editingId, setEditingId] = useState(null);
-  const [editingName, setEditingName] = useState('');
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [dayStartHour, setDayStartHour] = useState(4);
+
+  // 習慣管理画面
+  const [showHabitManager, setShowHabitManager] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState('');
 
   // スナックバー用の状態
   const [snackbar, setSnackbar] = useState(null);
@@ -62,14 +65,12 @@ function App() {
 
   // ===== スナックバーを表示 =====
   const showSnackbar = (message, habitId, habitName) => {
-    // 既存のタイムアウトをクリア
     if (snackbarTimeoutRef.current) {
       clearTimeout(snackbarTimeoutRef.current);
     }
 
     setSnackbar({ message, habitId, habitName });
 
-    // 5秒後に自動で消す
     snackbarTimeoutRef.current = setTimeout(() => {
       setSnackbar(null);
     }, 5000);
@@ -101,7 +102,6 @@ function App() {
 
   // ===== 設定を保存する =====
   const saveSettings = async (newDayStartHour) => {
-    // 警告を表示
     const confirmed = confirm(
       '日付切り替え時刻を変更すると、「今日」として表示される記録が変わる可能性があります。\n\n本当に変更しますか？'
     );
@@ -193,8 +193,8 @@ function App() {
   };
 
   // ===== 習慣を削除する =====
-  const handleDeleteHabit = async (habitId) => {
-    if (!confirm('この習慣を削除しますか？')) return;
+  const handleDeleteHabit = async (habitId, habitName) => {
+    if (!confirm(`「${habitName}」を削除しますか？\n※過去の記録もすべて削除されます`)) return;
 
     try {
       const habitRef = doc(db, 'users', user.uid, 'habits', habitId);
@@ -243,7 +243,6 @@ function App() {
         }
       });
       loadHabits();
-      // スナックバーを表示
       showSnackbar(`✓ ${habit.name} を達成しました！`, habit.id, habit.name);
     } catch (error) {
       console.error('記録の更新エラー:', error);
@@ -278,18 +277,16 @@ function App() {
     const isDone = currentLogs[todayStr]?.done;
 
     if (isDone) {
-      // 既に達成済み → 確認ダイアログを表示して取り消し
       const confirmed = confirm(`「${habit.name}」の本日の記録を取り消しますか？`);
       if (confirmed) {
         await undoComplete(habit.id);
       }
     } else {
-      // 未達成 → 達成を記録
       await markAsDone(habit);
     }
   };
 
-  // ===== スナックバーから取り消し（確認なし） =====
+  // ===== スナックバーから取り消し =====
   const handleSnackbarUndo = () => {
     if (snackbar?.habitId) {
       undoComplete(snackbar.habitId);
@@ -350,6 +347,21 @@ function App() {
             </div>
 
             <div className="settings-content">
+              {/* 習慣の管理 */}
+              <div className="setting-item">
+                <label>習慣の管理</label>
+                <button
+                  className="setting-link-button"
+                  onClick={() => {
+                    setShowSettings(false);
+                    setShowHabitManager(true);
+                  }}
+                >
+                  習慣を編集・削除する →
+                </button>
+              </div>
+
+              {/* 日付切り替え時刻 */}
               <div className="setting-item">
                 <label>1日の開始時刻</label>
                 <p className="setting-description">
@@ -381,6 +393,74 @@ function App() {
         </div>
       )}
 
+      {/* 習慣管理画面 */}
+      {showHabitManager && (
+        <div className="settings-overlay" onClick={() => setShowHabitManager(false)}>
+          <div className="settings-menu habit-manager" onClick={(e) => e.stopPropagation()}>
+            <div className="settings-header">
+              <h2>習慣の管理</h2>
+              <button onClick={() => {
+                setShowHabitManager(false);
+                setEditingId(null);
+                setEditingName('');
+              }}>✕</button>
+            </div>
+
+            <div className="settings-content">
+              {habits.length === 0 ? (
+                <p className="empty-message">習慣がまだありません</p>
+              ) : (
+                <div className="habit-manager-list">
+                  {habits.map((habit) => (
+                    <div key={habit.id} className="habit-manager-item">
+                      {editingId === habit.id ? (
+                        // 編集モード
+                        <div className="habit-manager-edit">
+                          <input
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            autoFocus
+                          />
+                          <div className="habit-manager-edit-actions">
+                            <button onClick={() => handleUpdateHabit(habit.id)}>保存</button>
+                            <button onClick={() => {
+                              setEditingId(null);
+                              setEditingName('');
+                            }}>キャンセル</button>
+                          </div>
+                        </div>
+                      ) : (
+                        // 通常モード
+                        <>
+                          <span className="habit-manager-name">{habit.name}</span>
+                          <div className="habit-manager-actions">
+                            <button
+                              onClick={() => {
+                                setEditingId(habit.id);
+                                setEditingName(habit.name);
+                              }}
+                            >
+                              編集
+                            </button>
+                            <button
+                              className="delete-button"
+                              onClick={() => handleDeleteHabit(habit.id, habit.name)}
+                            >
+                              削除
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 習慣追加フォーム */}
       <form onSubmit={handleAddHabit} className="add-form">
         <input
@@ -392,49 +472,22 @@ function App() {
         <button type="submit">追加</button>
       </form>
 
-      {/* 習慣一覧 */}
+      {/* 習慣一覧（シンプル版） */}
       <div className="habits-list">
         {habits.length === 0 ? (
           <p className="empty-message">習慣がまだありません。上のフォームから追加してください。</p>
         ) : (
           habits.map((habit) => (
             <div key={habit.id} className="habit-item">
-              {editingId === habit.id ? (
-                // 編集モード
-                <div className="edit-mode">
-                  <input
-                    type="text"
-                    value={editingName}
-                    onChange={(e) => setEditingName(e.target.value)}
-                  />
-                  <button onClick={() => handleUpdateHabit(habit.id)}>保存</button>
-                  <button onClick={() => setEditingId(null)}>キャンセル</button>
-                </div>
-              ) : (
-                // 通常モード
-                <>
-                  <div className="habit-main">
-                    <button
-                      className={`toggle-button ${habit.logs?.[todayStr]?.done ? 'done' : ''}`}
-                      onClick={() => handleToggleToday(habit)}
-                    >
-                      {habit.logs?.[todayStr]?.done ? '✓' : '○'}
-                    </button>
-                    <span className="habit-name">{habit.name}</span>
-                  </div>
-                  <div className="habit-actions">
-                    <button
-                      onClick={() => {
-                        setEditingId(habit.id);
-                        setEditingName(habit.name);
-                      }}
-                    >
-                      編集
-                    </button>
-                    <button onClick={() => handleDeleteHabit(habit.id)}>削除</button>
-                  </div>
-                </>
-              )}
+              <div className="habit-main">
+                <button
+                  className={`toggle-button ${habit.logs?.[todayStr]?.done ? 'done' : ''}`}
+                  onClick={() => handleToggleToday(habit)}
+                >
+                  {habit.logs?.[todayStr]?.done ? '✓' : '○'}
+                </button>
+                <span className="habit-name">{habit.name}</span>
+              </div>
             </div>
           ))
         )}
