@@ -2,7 +2,7 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-export function SortableHabitItem({ habit, todayStr, toggleHabit, isOverlay }) {
+export function SortableHabitItem({ habit, todayStr, toggleHabit, isOverlay, streak }) {
     const {
         attributes,
         listeners,
@@ -38,6 +38,9 @@ export function SortableHabitItem({ habit, todayStr, toggleHabit, isOverlay }) {
                     </button>
                     <span className="habit-name">{habit.name}</span>
                 </div>
+                {streak > 0 && (
+                    <span className="habit-streak">🔥{streak}日</span>
+                )}
             </div>
         );
     }
@@ -71,6 +74,9 @@ export function SortableHabitItem({ habit, todayStr, toggleHabit, isOverlay }) {
                 </button>
                 <span className="habit-name">{habit.name}</span>
             </div>
+            {streak > 0 && (
+                <span className="habit-streak">🔥{streak}日</span>
+            )}
         </div>
     );
 }

@@ -405,6 +405,15 @@ header h1 {
   font-size: 1rem;
 }
 
+/* ストリーク（継続日数）表示 */
+.habit-streak {
+  font-size: 0.85rem;
+  color: #888;
+  white-space: nowrap;
+  margin-left: auto;
+  padding-left: 10px;
+}
+
 .habit-actions {
   display: flex;
   gap: 8px;

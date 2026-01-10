@@ -387,6 +387,32 @@ function App() {
     return [...incomplete, ...complete];
   }, [habits, todayStr]);
 
+  // ===== ストリーク（継続日数）を計算 =====
+  const calculateStreak = (habit) => {
+    const logs = habit.logs || {};
+    let streak = 0;
+
+    // 今日から過去に向かって連続達成をカウント
+    const now = new Date();
+    if (now.getHours() < dayStartHour) {
+      now.setDate(now.getDate() - 1);
+    }
+
+    // 今日から過去に遊って連続達成をカウント
+    for (let i = 0; i < 365; i++) { // 最大365日まで
+      const checkDate = new Date(now);
+      checkDate.setDate(checkDate.getDate() - i);
+      const dateStr = checkDate.toISOString().split('T')[0];
+
+      if (logs[dateStr]?.done) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  };
 
   // ===== 達成を記録する =====
   const markAsDone = async (habit) => {
@@ -650,19 +676,24 @@ function App() {
                   habit={habit}
                   todayStr={todayStr}
                   toggleHabit={handleToggleToday}
+                  streak={calculateStreak(habit)}
                 />
               ))}
             </SortableContext>
 
             <DragOverlay>
-              {activeId ? (
-                <SortableHabitItem
-                  habit={habits.find(h => h.id === activeId)}
-                  todayStr={todayStr}
-                  toggleHabit={() => { }}
-                  isOverlay
-                />
-              ) : null}
+              {activeId ? (() => {
+                const habit = habits.find(h => h.id === activeId);
+                return (
+                  <SortableHabitItem
+                    habit={habit}
+                    todayStr={todayStr}
+                    toggleHabit={() => { }}
+                    isOverlay
+                    streak={calculateStreak(habit)}
+                  />
+                );
+              })() : null}
             </DragOverlay>
           </DndContext>
         )}
