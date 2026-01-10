@@ -419,11 +419,16 @@ function App() {
       now.setDate(now.getDate() - 1);
     }
 
-    // 今日から過去に遊って連続達成をカウント
+    // 今日から過去に遡って連続達成をカウント
     for (let i = 0; i < 365; i++) { // 最大365日まで
       const checkDate = new Date(now);
       checkDate.setDate(checkDate.getDate() - i);
-      const dateStr = checkDate.toISOString().split('T')[0];
+
+      // ローカル時間でYYYY-MM-DD形式を生成
+      const y = checkDate.getFullYear();
+      const m = String(checkDate.getMonth() + 1).padStart(2, '0');
+      const d = String(checkDate.getDate()).padStart(2, '0');
+      const dateStr = `${y}-${m}-${d}`;
 
       if (logs[dateStr]?.done) {
         streak++;
