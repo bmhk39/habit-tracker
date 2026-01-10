@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { auth, googleProvider, db } from './firebase';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import {
@@ -332,20 +332,7 @@ function App() {
     return now.toISOString().split('T')[0];
   };
 
-  // ===== 過去7日間の日付を取得（dayStartHourを考慮）=====
-  const getPast7Days = () => {
-    const days = [];
-    const now = new Date();
-    if (now.getHours() < dayStartHour) {
-      now.setDate(now.getDate() - 1);
-    }
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      days.push(date.toISOString().split('T')[0]);
-    }
-    return days;
-  };
+
 
   // ===== 達成を記録する =====
   const markAsDone = async (habit) => {
@@ -430,8 +417,13 @@ function App() {
 
   // ===== ログイン済みの場合 =====
   const todayStr = getTodayString();
-  const past7Days = getPast7Days();
 
+  // ===== 表示用に習慣をソート（未達成が上、達成済みが下）=====
+  const displayHabits = useMemo(() => {
+    const incomplete = habits.filter(h => !h.logs?.[todayStr]?.done);
+    const complete = habits.filter(h => h.logs?.[todayStr]?.done);
+    return [...incomplete, ...complete];
+  }, [habits, todayStr]);
   return (
     <div className="app">
       {/* スナックバー */}
@@ -603,10 +595,10 @@ function App() {
             modifiers={[restrictToVerticalAxis]}
           >
             <SortableContext
-              items={habits.map(h => h.id)}
+              items={displayHabits.map(h => h.id)}
               strategy={verticalListSortingStrategy}
             >
-              {habits.map((habit) => (
+              {displayHabits.map((habit) => (
                 <SortableHabitItem
                   key={habit.id}
                   habit={habit}
@@ -630,33 +622,6 @@ function App() {
         )}
       </div>
 
-      {/* 過去の記録 */}
-      {habits.length > 0 && (
-        <div className="logs-section">
-          <h2>過去7日間の記録</h2>
-          <div className="logs-grid">
-            {habits.map((habit) => (
-              <div key={habit.id} className="log-row">
-                <span className="log-habit-name">{habit.name}</span>
-                <div className="log-days">
-                  {past7Days.map((dateStr) => {
-                    const done = habit.logs?.[dateStr]?.done;
-                    return (
-                      <span
-                        key={dateStr}
-                        className={`log-day ${done ? 'done' : ''}`}
-                        title={dateStr}
-                      >
-                        {done ? '✓' : '·'}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
