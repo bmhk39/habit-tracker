@@ -104,6 +104,44 @@ function App() {
     };
   }, []);
 
+  // ===== アプリがフォアグラウンドに戻った際にリロード =====
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        loadHabits();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user]);
+
+  // ===== 日付変更を検知してリロード =====
+  useEffect(() => {
+    if (!user) return;
+
+    // 「今日」の日付文字列を計算する関数（dayStartHourを考慮）
+    const getCurrentTodayStr = () => {
+      const now = new Date();
+      if (now.getHours() < dayStartHour) {
+        now.setDate(now.getDate() - 1);
+      }
+      return now.toISOString().split('T')[0];
+    };
+
+    let lastTodayStr = getCurrentTodayStr();
+
+    const intervalId = setInterval(() => {
+      const currentTodayStr = getCurrentTodayStr();
+      if (currentTodayStr !== lastTodayStr) {
+        lastTodayStr = currentTodayStr;
+        loadHabits();
+      }
+    }, 60000); // 1分ごとにチェック
+
+    return () => clearInterval(intervalId);
+  }, [user, dayStartHour]);
+
   // ===== スナックバーを表示 =====
   const showSnackbar = (message, habitId, habitName) => {
     if (snackbarTimeoutRef.current) {
