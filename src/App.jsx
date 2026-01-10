@@ -36,6 +36,15 @@ import { SortableHabitItem } from './SortableHabitItem';
 import './App.css';
 
 function App() {
+  // ===== 今日の日付を取得（dayStartHourを考慮）=====
+  const getTodayString = (startHour = 4) => {
+    const now = new Date();
+    if (now.getHours() < startHour) {
+      now.setDate(now.getDate() - 1);
+    }
+    return now.toISOString().split('T')[0];
+  };
+
   // ===== 状態管理 =====
   const [user, setUser] = useState(null);
   const [habits, setHabits] = useState([]);
@@ -43,13 +52,13 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [dayStartHour, setDayStartHour] = useState(4);
+  const [todayStr, setTodayStr] = useState(() => getTodayString(4));
 
   // 習慣管理画面
   const [showHabitManager, setShowHabitManager] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
 
-  // スナックバー用の状態
   // スナックバー用の状態
   const [snackbar, setSnackbar] = useState(null);
   const snackbarTimeoutRef = useRef(null);
@@ -104,42 +113,21 @@ function App() {
     };
   }, []);
 
-  // ===== アプリがフォアグラウンドに戻った際にリロード =====
+  // ===== アプリがフォアグラウンドに戻った際に日付とデータを更新 =====
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && user) {
-        loadHabits();
+      if (document.visibilityState === 'visible') {
+        // 日付を強制更新
+        setTodayStr(getTodayString(dayStartHour));
+        // データをリロード
+        if (user) {
+          loadHabits();
+        }
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [user]);
-
-  // ===== 日付変更を検知してリロード =====
-  useEffect(() => {
-    if (!user) return;
-
-    // 「今日」の日付文字列を計算する関数（dayStartHourを考慮）
-    const getCurrentTodayStr = () => {
-      const now = new Date();
-      if (now.getHours() < dayStartHour) {
-        now.setDate(now.getDate() - 1);
-      }
-      return now.toISOString().split('T')[0];
-    };
-
-    let lastTodayStr = getCurrentTodayStr();
-
-    const intervalId = setInterval(() => {
-      const currentTodayStr = getCurrentTodayStr();
-      if (currentTodayStr !== lastTodayStr) {
-        lastTodayStr = currentTodayStr;
-        loadHabits();
-      }
-    }, 60000); // 1分ごとにチェック
-
-    return () => clearInterval(intervalId);
   }, [user, dayStartHour]);
 
   // ===== スナックバーを表示 =====
@@ -406,17 +394,7 @@ function App() {
     }
   };
 
-  // ===== 今日の日付を取得（dayStartHourを考慮）=====
-  const getTodayString = () => {
-    const now = new Date();
-    if (now.getHours() < dayStartHour) {
-      now.setDate(now.getDate() - 1);
-    }
-    return now.toISOString().split('T')[0];
-  };
-
-  // ===== 今日の日付文字列 =====
-  const todayStr = getTodayString();
+  // todayStr は state として管理（上部で定義済み）
 
   // ===== 表示用に習慣をソート（未達成が上、達成済みが下）=====
   const displayHabits = useMemo(() => {
