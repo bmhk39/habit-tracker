@@ -291,24 +291,45 @@ function App() {
       return;
     }
 
-    if (active.id !== over.id) {
-      // 古いインデックスと新しいインデックスを取得
-      const oldIndex = habits.findIndex((habit) => habit.id === active.id);
-      const newIndex = habits.findIndex((habit) => habit.id === over.id);
+    // ドラッグ中のアイテムとドロップ先のアイテムを取得
+    const activeHabit = habits.find(h => h.id === active.id);
+    const overHabit = habits.find(h => h.id === over.id);
 
-      // 配列を並び替え
-      const newHabits = arrayMove(habits, oldIndex, newIndex);
+    if (!activeHabit || !overHabit) return;
 
-      // order値を更新（0から振り直す）
+    // 達成状態を確認
+    const activeIsDone = activeHabit.logs?.[todayStr]?.done;
+    const overIsDone = overHabit.logs?.[todayStr]?.done;
+
+    // グループをまたぐドラッグの場合
+    if (activeIsDone !== overIsDone) {
+      // 達成済みを未達成エリアにドラッグ → 達成済みの一番上に移動
+      // 未達成を達成済みエリアにドラッグ → 未達成の一番下に移動
+      // つまり、自分のグループの境界に移動する
+
+      const incomplete = habits.filter(h => !h.logs?.[todayStr]?.done);
+      const complete = habits.filter(h => h.logs?.[todayStr]?.done);
+
+      let newHabits;
+      if (activeIsDone) {
+        // 達成済みアイテムを未達成エリアにドラッグ → 達成済みの一番上に
+        const withoutActive = complete.filter(h => h.id !== active.id);
+        newHabits = [...incomplete, activeHabit, ...withoutActive];
+      } else {
+        // 未達成アイテムを達成済みエリアにドラッグ → 未達成の一番下に
+        const withoutActive = incomplete.filter(h => h.id !== active.id);
+        newHabits = [...withoutActive, activeHabit, ...complete];
+      }
+
+      // order値を更新
       const updatedHabits = newHabits.map((habit, index) => ({
         ...habit,
         order: index
       }));
 
-      // 画面を即時更新
       setHabits(updatedHabits);
 
-      // Firebaseに保存（バッチ更新）
+      // Firebaseに保存
       try {
         const batch = writeBatch(db);
         updatedHabits.forEach((habit) => {
@@ -318,8 +339,32 @@ function App() {
         await batch.commit();
       } catch (error) {
         console.error('並び替え保存エラー:', error);
-        // エラー時は必要なら元の順序に戻す処理を入れる
       }
+      return;
+    }
+
+    // 同じグループ内での並び替え（従来の処理）
+    const oldIndex = habits.findIndex((habit) => habit.id === active.id);
+    const newIndex = habits.findIndex((habit) => habit.id === over.id);
+
+    const newHabits = arrayMove(habits, oldIndex, newIndex);
+
+    const updatedHabits = newHabits.map((habit, index) => ({
+      ...habit,
+      order: index
+    }));
+
+    setHabits(updatedHabits);
+
+    try {
+      const batch = writeBatch(db);
+      updatedHabits.forEach((habit) => {
+        const habitRef = doc(db, 'users', user.uid, 'habits', habit.id);
+        batch.update(habitRef, { order: habit.order });
+      });
+      await batch.commit();
+    } catch (error) {
+      console.error('並び替え保存エラー:', error);
     }
   };
 
