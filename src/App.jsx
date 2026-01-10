@@ -332,6 +332,15 @@ function App() {
     return now.toISOString().split('T')[0];
   };
 
+  // ===== 今日の日付文字列 =====
+  const todayStr = getTodayString();
+
+  // ===== 表示用に習慣をソート（未達成が上、達成済みが下）=====
+  const displayHabits = useMemo(() => {
+    const incomplete = habits.filter(h => !h.logs?.[todayStr]?.done);
+    const complete = habits.filter(h => h.logs?.[todayStr]?.done);
+    return [...incomplete, ...complete];
+  }, [habits, todayStr]);
 
 
   // ===== 達成を記録する =====
@@ -416,14 +425,6 @@ function App() {
   }
 
   // ===== ログイン済みの場合 =====
-  const todayStr = getTodayString();
-
-  // ===== 表示用に習慣をソート（未達成が上、達成済みが下）=====
-  const displayHabits = useMemo(() => {
-    const incomplete = habits.filter(h => !h.logs?.[todayStr]?.done);
-    const complete = habits.filter(h => h.logs?.[todayStr]?.done);
-    return [...incomplete, ...complete];
-  }, [habits, todayStr]);
   return (
     <div className="app">
       {/* スナックバー */}
