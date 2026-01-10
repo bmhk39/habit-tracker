@@ -35,322 +35,351 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableHabitItem } from './SortableHabitItem';
 import './App.css';
 
-// ===== 今日の日付を取得（dayStartHourを考慮）=====
-const getTodayString = (startHour = 4) => {
-  const now = new Date();
-  if (now.getHours() < startHour) {
-    now.setDate(now.getDate() - 1);
-  }
-  // ローカル時間でYYYY-MM-DD形式を生成
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
 
-// ===== 状態管理 =====
-const [user, setUser] = useState(null);
-const [habits, setHabits] = useState([]);
-const [newHabitName, setNewHabitName] = useState('');
-const [loading, setLoading] = useState(true);
-const [showSettings, setShowSettings] = useState(false);
-const [dayStartHour, setDayStartHour] = useState(4);
-const [todayStr, setTodayStr] = useState(() => getTodayString(4));
-
-// 習慣管理画面
-const [showHabitManager, setShowHabitManager] = useState(false);
-const [editingId, setEditingId] = useState(null);
-const [editingName, setEditingName] = useState('');
-
-// スナックバー用の状態
-const [snackbar, setSnackbar] = useState(null);
-const snackbarTimeoutRef = useRef(null);
-
-// ドラッグ中のアイテム
-const [activeId, setActiveId] = useState(null);
-
-// ===== Dnd Sensors =====
-const sensors = useSensors(
-  useSensor(TouchSensor, {
-    activationConstraint: {
-      delay: 250, // 250ms長押しでドラッグ開始
-      tolerance: 5, // 5pxまでの移動は許容
-    },
-  }),
-  useSensor(MouseSensor, { // PCなどでマウス操作する場合
-    activationConstraint: {
-      distance: 10, // 10px動くまでドラッグ開始しない
+function App() {
+  // ===== 今日の日付を取得（dayStartHourを考慮）=====
+  const getTodayString = (startHour = 4) => {
+    const now = new Date();
+    if (now.getHours() < startHour) {
+      now.setDate(now.getDate() - 1);
     }
-  }),
-  useSensor(KeyboardSensor, {
-    coordinateGetter: sortableKeyboardCoordinates,
-  }),
-);
+    // ローカル時間でYYYY-MM-DD形式を生成
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
-// ===== 認証状態の監視 =====
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-    setUser(currentUser);
-    setLoading(false);
-  });
-  return () => unsubscribe();
-}, []);
+  // ===== 状態管理 =====
+  const [user, setUser] = useState(null);
+  const [habits, setHabits] = useState([]);
+  const [newHabitName, setNewHabitName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [dayStartHour, setDayStartHour] = useState(4);
+  const [todayStr, setTodayStr] = useState(() => getTodayString(4));
 
-// ===== ユーザーが変わったら習慣と設定を読み込む =====
-useEffect(() => {
-  if (user) {
-    loadHabits();
-    loadSettings();
-  } else {
-    setHabits([]);
-    setDayStartHour(4);
-  }
-}, [user]);
+  // 習慣管理画面
+  const [showHabitManager, setShowHabitManager] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState('');
 
-// ===== スナックバーのクリーンアップ =====
-useEffect(() => {
-  return () => {
+  // スナックバー用の状態
+  const [snackbar, setSnackbar] = useState(null);
+  const snackbarTimeoutRef = useRef(null);
+
+  // ドラッグ中のアイテム
+  const [activeId, setActiveId] = useState(null);
+
+  // ===== Dnd Sensors =====
+  const sensors = useSensors(
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250, // 250ms長押しでドラッグ開始
+        tolerance: 5, // 5pxまでの移動は許容
+      },
+    }),
+    useSensor(MouseSensor, { // PCなどでマウス操作する場合
+      activationConstraint: {
+        distance: 10, // 10px動くまでドラッグ開始しない
+      }
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  // ===== 認証状態の監視 =====
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // ===== ユーザーが変わったら習慣と設定を読み込む =====
+  useEffect(() => {
+    if (user) {
+      loadHabits();
+      loadSettings();
+    } else {
+      setHabits([]);
+      setDayStartHour(4);
+    }
+  }, [user]);
+
+  // ===== スナックバーのクリーンアップ =====
+  useEffect(() => {
+    return () => {
+      if (snackbarTimeoutRef.current) {
+        clearTimeout(snackbarTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // ===== アプリがフォアグラウンドに戻った際に日付とデータを更新 =====
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // 日付を強制更新
+        setTodayStr(getTodayString(dayStartHour));
+        // データをリロード
+        if (user) {
+          loadHabits();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user, dayStartHour]);
+
+  // ===== スナックバーを表示 =====
+  const showSnackbar = (message, habitId, habitName) => {
     if (snackbarTimeoutRef.current) {
       clearTimeout(snackbarTimeoutRef.current);
     }
-  };
-}, []);
 
-// ===== アプリがフォアグラウンドに戻った際に日付とデータを更新 =====
-useEffect(() => {
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === 'visible') {
-      // 日付を強制更新
-      setTodayStr(getTodayString(dayStartHour));
-      // データをリロード
-      if (user) {
-        loadHabits();
-      }
+    setSnackbar({ message, habitId, habitName });
+
+    snackbarTimeoutRef.current = setTimeout(() => {
+      setSnackbar(null);
+    }, 5000);
+  };
+
+  // ===== スナックバーを閉じる =====
+  const hideSnackbar = () => {
+    if (snackbarTimeoutRef.current) {
+      clearTimeout(snackbarTimeoutRef.current);
     }
-  };
-
-  document.addEventListener('visibilitychange', handleVisibilityChange);
-  return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-}, [user, dayStartHour]);
-
-// ===== スナックバーを表示 =====
-const showSnackbar = (message, habitId, habitName) => {
-  if (snackbarTimeoutRef.current) {
-    clearTimeout(snackbarTimeoutRef.current);
-  }
-
-  setSnackbar({ message, habitId, habitName });
-
-  snackbarTimeoutRef.current = setTimeout(() => {
     setSnackbar(null);
-  }, 5000);
-};
+  };
 
-// ===== スナックバーを閉じる =====
-const hideSnackbar = () => {
-  if (snackbarTimeoutRef.current) {
-    clearTimeout(snackbarTimeoutRef.current);
-  }
-  setSnackbar(null);
-};
-
-// ===== 設定を読み込む =====
-const loadSettings = async () => {
-  try {
-    const settingsRef = doc(db, 'users', user.uid, 'settings', 'general');
-    const settingsDoc = await getDoc(settingsRef);
-    if (settingsDoc.exists()) {
-      const data = settingsDoc.data();
-      if (data.dayStartHour !== undefined) {
-        setDayStartHour(data.dayStartHour);
+  // ===== 設定を読み込む =====
+  const loadSettings = async () => {
+    try {
+      const settingsRef = doc(db, 'users', user.uid, 'settings', 'general');
+      const settingsDoc = await getDoc(settingsRef);
+      if (settingsDoc.exists()) {
+        const data = settingsDoc.data();
+        if (data.dayStartHour !== undefined) {
+          setDayStartHour(data.dayStartHour);
+        }
       }
+    } catch (error) {
+      console.error('設定の読み込みエラー:', error);
     }
-  } catch (error) {
-    console.error('設定の読み込みエラー:', error);
-  }
-};
+  };
 
-// ===== 設定を保存する =====
-const saveSettings = async (newDayStartHour) => {
-  const confirmed = confirm(
-    '日付切り替え時刻を変更すると、「今日」として表示される記録が変わる可能性があります。\n\n本当に変更しますか？'
-  );
-  if (!confirmed) return;
+  // ===== 設定を保存する =====
+  const saveSettings = async (newDayStartHour) => {
+    const confirmed = confirm(
+      '日付切り替え時刻を変更すると、「今日」として表示される記録が変わる可能性があります。\n\n本当に変更しますか？'
+    );
+    if (!confirmed) return;
 
-  try {
-    const settingsRef = doc(db, 'users', user.uid, 'settings', 'general');
-    await setDoc(settingsRef, {
-      dayStartHour: newDayStartHour
-    }, { merge: true });
-    setDayStartHour(newDayStartHour);
-  } catch (error) {
-    console.error('設定の保存エラー:', error);
-    alert('設定の保存に失敗しました');
-  }
-};
+    try {
+      const settingsRef = doc(db, 'users', user.uid, 'settings', 'general');
+      await setDoc(settingsRef, {
+        dayStartHour: newDayStartHour
+      }, { merge: true });
+      setDayStartHour(newDayStartHour);
+    } catch (error) {
+      console.error('設定の保存エラー:', error);
+      alert('設定の保存に失敗しました');
+    }
+  };
 
-// ===== Googleでログイン =====
-const handleLogin = async () => {
-  try {
-    await signInWithPopup(auth, googleProvider);
-  } catch (error) {
-    console.error('ログインエラー:', error);
-    alert('ログインに失敗しました');
-  }
-};
+  // ===== Googleでログイン =====
+  const handleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error('ログインエラー:', error);
+      alert('ログインに失敗しました');
+    }
+  };
 
-// ===== ログアウト =====
-const handleLogout = async () => {
-  try {
-    await signOut(auth);
-    setShowSettings(false);
-  } catch (error) {
-    console.error('ログアウトエラー:', error);
-  }
-};
+  // ===== ログアウト =====
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setShowSettings(false);
+    } catch (error) {
+      console.error('ログアウトエラー:', error);
+    }
+  };
 
-// ===== 習慣を読み込む =====
-const loadHabits = async () => {
-  try {
-    const habitsRef = collection(db, 'users', user.uid, 'habits');
-    // orderでソートするため、一括取得後にメモリ上でソートする方式を採用
-    // (データ量が少ないためこれで十分かつ、既存データにorderがない場合も安全)
-    const q = query(habitsRef);
-    const snapshot = await getDocs(q);
+  // ===== 習慣を読み込む =====
+  const loadHabits = async () => {
+    try {
+      const habitsRef = collection(db, 'users', user.uid, 'habits');
+      // orderでソートするため、一括取得後にメモリ上でソートする方式を採用
+      // (データ量が少ないためこれで十分かつ、既存データにorderがない場合も安全)
+      const q = query(habitsRef);
+      const snapshot = await getDocs(q);
 
-    const habitsData = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+      const habitsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
 
-    // メモリ上でソート
-    habitsData.sort((a, b) => {
-      // orderがある場合はそれを優先
-      if (a.order !== undefined && b.order !== undefined) {
-        return a.order - b.order;
-      }
-      // orderがない場合は作成日順（新しい順）
-      const timeA = a.createdAt?.seconds || 0;
-      const timeB = b.createdAt?.seconds || 0;
-      return timeB - timeA;
-    });
+      // メモリ上でソート
+      habitsData.sort((a, b) => {
+        // orderがある場合はそれを優先
+        if (a.order !== undefined && b.order !== undefined) {
+          return a.order - b.order;
+        }
+        // orderがない場合は作成日順（新しい順）
+        const timeA = a.createdAt?.seconds || 0;
+        const timeB = b.createdAt?.seconds || 0;
+        return timeB - timeA;
+      });
 
-    setHabits(habitsData);
-  } catch (error) {
-    console.error('習慣の読み込みエラー:', error);
-  }
-};
+      setHabits(habitsData);
+    } catch (error) {
+      console.error('習慣の読み込みエラー:', error);
+    }
+  };
 
-// ===== 習慣を追加する =====
-const handleAddHabit = async (e) => {
-  e.preventDefault();
-  if (!newHabitName.trim()) return;
+  // ===== 習慣を追加する =====
+  const handleAddHabit = async (e) => {
+    e.preventDefault();
+    if (!newHabitName.trim()) return;
 
-  // 現在の最大orderを取得して、その次に追加する
-  const nextOrder = habits.length > 0
-    ? Math.max(...habits.map(h => (h.order !== undefined ? h.order : -1))) + 1
-    : 0;
+    // 現在の最大orderを取得して、その次に追加する
+    const nextOrder = habits.length > 0
+      ? Math.max(...habits.map(h => (h.order !== undefined ? h.order : -1))) + 1
+      : 0;
 
-  try {
-    const habitsRef = collection(db, 'users', user.uid, 'habits');
-    await addDoc(habitsRef, {
-      name: newHabitName.trim(),
-      createdAt: serverTimestamp(),
-      order: nextOrder
-    });
-    setNewHabitName('');
-    loadHabits();
-  } catch (error) {
-    console.error('習慣の追加エラー:', error);
-    alert('習慣の追加に失敗しました');
-  }
-};
+    try {
+      const habitsRef = collection(db, 'users', user.uid, 'habits');
+      await addDoc(habitsRef, {
+        name: newHabitName.trim(),
+        createdAt: serverTimestamp(),
+        order: nextOrder
+      });
+      setNewHabitName('');
+      loadHabits();
+    } catch (error) {
+      console.error('習慣の追加エラー:', error);
+      alert('習慣の追加に失敗しました');
+    }
+  };
 
-// ===== 習慣を編集する =====
-const handleUpdateHabit = async (habitId) => {
-  if (!editingName.trim()) return;
+  // ===== 習慣を編集する =====
+  const handleUpdateHabit = async (habitId) => {
+    if (!editingName.trim()) return;
 
-  try {
-    const habitRef = doc(db, 'users', user.uid, 'habits', habitId);
-    await updateDoc(habitRef, {
-      name: editingName.trim()
-    });
-    setEditingId(null);
-    setEditingName('');
-    loadHabits();
-  } catch (error) {
-    console.error('習慣の更新エラー:', error);
-    alert('習慣の更新に失敗しました');
-  }
-};
+    try {
+      const habitRef = doc(db, 'users', user.uid, 'habits', habitId);
+      await updateDoc(habitRef, {
+        name: editingName.trim()
+      });
+      setEditingId(null);
+      setEditingName('');
+      loadHabits();
+    } catch (error) {
+      console.error('習慣の更新エラー:', error);
+      alert('習慣の更新に失敗しました');
+    }
+  };
 
-// ===== 習慣を削除する =====
-const handleDeleteHabit = async (habitId, habitName) => {
-  if (!confirm(`「${habitName}」を削除しますか？\n※過去の記録もすべて削除されます`)) return;
+  // ===== 習慣を削除する =====
+  const handleDeleteHabit = async (habitId, habitName) => {
+    if (!confirm(`「${habitName}」を削除しますか？\n※過去の記録もすべて削除されます`)) return;
 
-  try {
-    const habitRef = doc(db, 'users', user.uid, 'habits', habitId);
-    await deleteDoc(habitRef);
-    loadHabits();
-  } catch (error) {
-    console.error('習慣の削除エラー:', error);
-    alert('習慣の削除に失敗しました');
-  }
-};
+    try {
+      const habitRef = doc(db, 'users', user.uid, 'habits', habitId);
+      await deleteDoc(habitRef);
+      loadHabits();
+    } catch (error) {
+      console.error('習慣の削除エラー:', error);
+      alert('習慣の削除に失敗しました');
+    }
+  };
 
-// ===== ドラッグ開始 =====
-const handleDragStart = (event) => {
-  setActiveId(event.active.id);
-};
+  // ===== ドラッグ開始 =====
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id);
+  };
 
-// ===== ドラッグキャンセル =====
-const handleDragCancel = () => {
-  setActiveId(null);
-};
+  // ===== ドラッグキャンセル =====
+  const handleDragCancel = () => {
+    setActiveId(null);
+  };
 
-// ===== ドラッグ終了時の処理（並び替え保存） =====
-const handleDragEnd = async (event) => {
-  const { active, over } = event;
+  // ===== ドラッグ終了時の処理（並び替え保存） =====
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
 
-  // ドラッグ終了時にIDをリセット
-  setActiveId(null);
+    // ドラッグ終了時にIDをリセット
+    setActiveId(null);
 
-  // ドロップ先がない、または同じ場所なら終了
-  if (!over || active.id === over.id) {
-    return;
-  }
-
-  // ドラッグ中のアイテムとドロップ先のアイテムを取得
-  const activeHabit = habits.find(h => h.id === active.id);
-  const overHabit = habits.find(h => h.id === over.id);
-
-  if (!activeHabit || !overHabit) return;
-
-  // 達成状態を確認
-  const activeIsDone = activeHabit.logs?.[todayStr]?.done;
-  const overIsDone = overHabit.logs?.[todayStr]?.done;
-
-  // グループをまたぐドラッグの場合
-  if (activeIsDone !== overIsDone) {
-    // 達成済みを未達成エリアにドラッグ → 達成済みの一番上に移動
-    // 未達成を達成済みエリアにドラッグ → 未達成の一番下に移動
-    // つまり、自分のグループの境界に移動する
-
-    const incomplete = habits.filter(h => !h.logs?.[todayStr]?.done);
-    const complete = habits.filter(h => h.logs?.[todayStr]?.done);
-
-    let newHabits;
-    if (activeIsDone) {
-      // 達成済みアイテムを未達成エリアにドラッグ → 達成済みの一番上に
-      const withoutActive = complete.filter(h => h.id !== active.id);
-      newHabits = [...incomplete, activeHabit, ...withoutActive];
-    } else {
-      // 未達成アイテムを達成済みエリアにドラッグ → 未達成の一番下に
-      const withoutActive = incomplete.filter(h => h.id !== active.id);
-      newHabits = [...withoutActive, activeHabit, ...complete];
+    // ドロップ先がない、または同じ場所なら終了
+    if (!over || active.id === over.id) {
+      return;
     }
 
-    // order値を更新
+    // ドラッグ中のアイテムとドロップ先のアイテムを取得
+    const activeHabit = habits.find(h => h.id === active.id);
+    const overHabit = habits.find(h => h.id === over.id);
+
+    if (!activeHabit || !overHabit) return;
+
+    // 達成状態を確認
+    const activeIsDone = activeHabit.logs?.[todayStr]?.done;
+    const overIsDone = overHabit.logs?.[todayStr]?.done;
+
+    // グループをまたぐドラッグの場合
+    if (activeIsDone !== overIsDone) {
+      // 達成済みを未達成エリアにドラッグ → 達成済みの一番上に移動
+      // 未達成を達成済みエリアにドラッグ → 未達成の一番下に移動
+      // つまり、自分のグループの境界に移動する
+
+      const incomplete = habits.filter(h => !h.logs?.[todayStr]?.done);
+      const complete = habits.filter(h => h.logs?.[todayStr]?.done);
+
+      let newHabits;
+      if (activeIsDone) {
+        // 達成済みアイテムを未達成エリアにドラッグ → 達成済みの一番上に
+        const withoutActive = complete.filter(h => h.id !== active.id);
+        newHabits = [...incomplete, activeHabit, ...withoutActive];
+      } else {
+        // 未達成アイテムを達成済みエリアにドラッグ → 未達成の一番下に
+        const withoutActive = incomplete.filter(h => h.id !== active.id);
+        newHabits = [...withoutActive, activeHabit, ...complete];
+      }
+
+      // order値を更新
+      const updatedHabits = newHabits.map((habit, index) => ({
+        ...habit,
+        order: index
+      }));
+
+      setHabits(updatedHabits);
+
+      // Firebaseに保存
+      try {
+        const batch = writeBatch(db);
+        updatedHabits.forEach((habit) => {
+          const habitRef = doc(db, 'users', user.uid, 'habits', habit.id);
+          batch.update(habitRef, { order: habit.order });
+        });
+        await batch.commit();
+      } catch (error) {
+        console.error('並び替え保存エラー:', error);
+      }
+      return;
+    }
+
+    // 同じグループ内での並び替え（従来の処理）
+    const oldIndex = habits.findIndex((habit) => habit.id === active.id);
+    const newIndex = habits.findIndex((habit) => habit.id === over.id);
+
+    const newHabits = arrayMove(habits, oldIndex, newIndex);
+
     const updatedHabits = newHabits.map((habit, index) => ({
       ...habit,
       order: index
@@ -358,7 +387,6 @@ const handleDragEnd = async (event) => {
 
     setHabits(updatedHabits);
 
-    // Firebaseに保存
     try {
       const batch = writeBatch(db);
       updatedHabits.forEach((habit) => {
@@ -369,357 +397,330 @@ const handleDragEnd = async (event) => {
     } catch (error) {
       console.error('並び替え保存エラー:', error);
     }
-    return;
-  }
+  };
 
-  // 同じグループ内での並び替え（従来の処理）
-  const oldIndex = habits.findIndex((habit) => habit.id === active.id);
-  const newIndex = habits.findIndex((habit) => habit.id === over.id);
+  // todayStr は state として管理（上部で定義済み）
 
-  const newHabits = arrayMove(habits, oldIndex, newIndex);
+  // ===== 表示用に習慣をソート（未達成が上、達成済みが下）=====
+  const displayHabits = useMemo(() => {
+    const incomplete = habits.filter(h => !h.logs?.[todayStr]?.done);
+    const complete = habits.filter(h => h.logs?.[todayStr]?.done);
+    return [...incomplete, ...complete];
+  }, [habits, todayStr]);
 
-  const updatedHabits = newHabits.map((habit, index) => ({
-    ...habit,
-    order: index
-  }));
+  // ===== ストリーク（継続日数）を計算 =====
+  const calculateStreak = (habit) => {
+    const logs = habit.logs || {};
+    let streak = 0;
 
-  setHabits(updatedHabits);
+    // 今日から過去に向かって連続達成をカウント
+    const now = new Date();
+    if (now.getHours() < dayStartHour) {
+      now.setDate(now.getDate() - 1);
+    }
 
-  try {
-    const batch = writeBatch(db);
-    updatedHabits.forEach((habit) => {
+    // 今日から過去に遊って連続達成をカウント
+    for (let i = 0; i < 365; i++) { // 最大365日まで
+      const checkDate = new Date(now);
+      checkDate.setDate(checkDate.getDate() - i);
+      const dateStr = checkDate.toISOString().split('T')[0];
+
+      if (logs[dateStr]?.done) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  };
+
+  // ===== 達成を記録する =====
+  const markAsDone = async (habit) => {
+    const todayStr = getTodayString(dayStartHour);
+
+    try {
       const habitRef = doc(db, 'users', user.uid, 'habits', habit.id);
-      batch.update(habitRef, { order: habit.order });
-    });
-    await batch.commit();
-  } catch (error) {
-    console.error('並び替え保存エラー:', error);
-  }
-};
+      await updateDoc(habitRef, {
+        [`logs.${todayStr}`]: {
+          done: true,
+          completedAt: new Date().toISOString()
+        }
+      });
+      loadHabits();
+      showSnackbar(`✓ ${habit.name} を達成しました！`, habit.id, habit.name);
+    } catch (error) {
+      console.error('記録の更新エラー:', error);
+      alert('記録の更新に失敗しました');
+    }
+  };
 
-// todayStr は state として管理（上部で定義済み）
+  // ===== 達成を取り消す =====
+  const undoComplete = async (habitId) => {
+    const todayStr = getTodayString(dayStartHour);
 
-// ===== 表示用に習慣をソート（未達成が上、達成済みが下）=====
-const displayHabits = useMemo(() => {
-  const incomplete = habits.filter(h => !h.logs?.[todayStr]?.done);
-  const complete = habits.filter(h => h.logs?.[todayStr]?.done);
-  return [...incomplete, ...complete];
-}, [habits, todayStr]);
+    try {
+      const habitRef = doc(db, 'users', user.uid, 'habits', habitId);
+      await updateDoc(habitRef, {
+        [`logs.${todayStr}`]: {
+          done: false,
+          completedAt: null
+        }
+      });
+      loadHabits();
+      hideSnackbar();
+    } catch (error) {
+      console.error('記録の更新エラー:', error);
+      alert('記録の更新に失敗しました');
+    }
+  };
 
-// ===== ストリーク（継続日数）を計算 =====
-const calculateStreak = (habit) => {
-  const logs = habit.logs || {};
-  let streak = 0;
+  // ===== ボタンクリック時の処理 =====
+  const handleToggleToday = async (habit) => {
+    const todayStr = getTodayString();
+    const currentLogs = habit.logs || {};
+    const isDone = currentLogs[todayStr]?.done;
 
-  // 今日から過去に向かって連続達成をカウント
-  const now = new Date();
-  if (now.getHours() < dayStartHour) {
-    now.setDate(now.getDate() - 1);
-  }
-
-  // 今日から過去に遊って連続達成をカウント
-  for (let i = 0; i < 365; i++) { // 最大365日まで
-    const checkDate = new Date(now);
-    checkDate.setDate(checkDate.getDate() - i);
-    const dateStr = checkDate.toISOString().split('T')[0];
-
-    if (logs[dateStr]?.done) {
-      streak++;
+    if (isDone) {
+      const confirmed = confirm(`「${habit.name}」の本日の記録を取り消しますか？`);
+      if (confirmed) {
+        await undoComplete(habit.id);
+      }
     } else {
-      break;
+      await markAsDone(habit);
     }
-  }
+  };
 
-  return streak;
-};
-
-// ===== 達成を記録する =====
-const markAsDone = async (habit) => {
-  const todayStr = getTodayString(dayStartHour);
-
-  try {
-    const habitRef = doc(db, 'users', user.uid, 'habits', habit.id);
-    await updateDoc(habitRef, {
-      [`logs.${todayStr}`]: {
-        done: true,
-        completedAt: new Date().toISOString()
-      }
-    });
-    loadHabits();
-    showSnackbar(`✓ ${habit.name} を達成しました！`, habit.id, habit.name);
-  } catch (error) {
-    console.error('記録の更新エラー:', error);
-    alert('記録の更新に失敗しました');
-  }
-};
-
-// ===== 達成を取り消す =====
-const undoComplete = async (habitId) => {
-  const todayStr = getTodayString(dayStartHour);
-
-  try {
-    const habitRef = doc(db, 'users', user.uid, 'habits', habitId);
-    await updateDoc(habitRef, {
-      [`logs.${todayStr}`]: {
-        done: false,
-        completedAt: null
-      }
-    });
-    loadHabits();
-    hideSnackbar();
-  } catch (error) {
-    console.error('記録の更新エラー:', error);
-    alert('記録の更新に失敗しました');
-  }
-};
-
-// ===== ボタンクリック時の処理 =====
-const handleToggleToday = async (habit) => {
-  const todayStr = getTodayString();
-  const currentLogs = habit.logs || {};
-  const isDone = currentLogs[todayStr]?.done;
-
-  if (isDone) {
-    const confirmed = confirm(`「${habit.name}」の本日の記録を取り消しますか？`);
-    if (confirmed) {
-      await undoComplete(habit.id);
+  // ===== スナックバーから取り消し =====
+  const handleSnackbarUndo = () => {
+    if (snackbar?.habitId) {
+      undoComplete(snackbar.habitId);
     }
-  } else {
-    await markAsDone(habit);
+  };
+
+  // ===== ローディング中 =====
+  if (loading) {
+    return <div className="app">読み込み中...</div>;
   }
-};
 
-// ===== スナックバーから取り消し =====
-const handleSnackbarUndo = () => {
-  if (snackbar?.habitId) {
-    undoComplete(snackbar.habitId);
-  }
-};
-
-// ===== ローディング中 =====
-if (loading) {
-  return <div className="app">読み込み中...</div>;
-}
-
-// ===== ログインしていない場合 =====
-if (!user) {
-  return (
-    <div className="app">
-      <h1>習慣トラッカー</h1>
-      <p>毎日の習慣を記録して、自分を変えよう</p>
-      <button onClick={handleLogin} className="login-button">
-        Googleでログイン
-      </button>
-    </div>
-  );
-}
-
-// ===== ログイン済みの場合 =====
-return (
-  <div className="app">
-    {/* スナックバー */}
-    {snackbar && (
-      <div className="snackbar">
-        <span className="snackbar-message">{snackbar.message}</span>
-        <button className="snackbar-undo" onClick={handleSnackbarUndo}>
-          取り消す
+  // ===== ログインしていない場合 =====
+  if (!user) {
+    return (
+      <div className="app">
+        <h1>習慣トラッカー</h1>
+        <p>毎日の習慣を記録して、自分を変えよう</p>
+        <button onClick={handleLogin} className="login-button">
+          Googleでログイン
         </button>
       </div>
-    )}
+    );
+  }
 
-    <header>
-      <h1>習慣トラッカー</h1>
-      <button
-        className="settings-button"
-        onClick={() => setShowSettings(true)}
-      >
-        ⚙
-      </button>
-    </header>
+  // ===== ログイン済みの場合 =====
+  return (
+    <div className="app">
+      {/* スナックバー */}
+      {snackbar && (
+        <div className="snackbar">
+          <span className="snackbar-message">{snackbar.message}</span>
+          <button className="snackbar-undo" onClick={handleSnackbarUndo}>
+            取り消す
+          </button>
+        </div>
+      )}
 
-    {/* 設定メニュー */}
-    {showSettings && (
-      <div className="settings-overlay" onClick={() => setShowSettings(false)}>
-        <div className="settings-menu" onClick={(e) => e.stopPropagation()}>
-          <div className="settings-header">
-            <h2>設定</h2>
-            <button onClick={() => setShowSettings(false)}>✕</button>
-          </div>
+      <header>
+        <h1>習慣トラッカー</h1>
+        <button
+          className="settings-button"
+          onClick={() => setShowSettings(true)}
+        >
+          ⚙
+        </button>
+      </header>
 
-          <div className="settings-content">
-            {/* 習慣の管理 */}
-            <div className="setting-item">
-              <label>習慣の管理</label>
-              <button
-                className="setting-link-button"
-                onClick={() => {
-                  setShowSettings(false);
-                  setShowHabitManager(true);
-                }}
-              >
-                習慣を編集・削除する →
+      {/* 設定メニュー */}
+      {showSettings && (
+        <div className="settings-overlay" onClick={() => setShowSettings(false)}>
+          <div className="settings-menu" onClick={(e) => e.stopPropagation()}>
+            <div className="settings-header">
+              <h2>設定</h2>
+              <button onClick={() => setShowSettings(false)}>✕</button>
+            </div>
+
+            <div className="settings-content">
+              {/* 習慣の管理 */}
+              <div className="setting-item">
+                <label>習慣の管理</label>
+                <button
+                  className="setting-link-button"
+                  onClick={() => {
+                    setShowSettings(false);
+                    setShowHabitManager(true);
+                  }}
+                >
+                  習慣を編集・削除する →
+                </button>
+              </div>
+
+              {/* 日付切り替え時刻 */}
+              <div className="setting-item">
+                <label>1日の開始時刻</label>
+                <p className="setting-description">
+                  この時刻を過ぎると「翌日」として扱われます
+                </p>
+                <select
+                  value={dayStartHour}
+                  onChange={(e) => saveSettings(Number(e.target.value))}
+                >
+                  {[...Array(24)].map((_, hour) => (
+                    <option key={hour} value={hour}>
+                      {hour}:00
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="settings-footer">
+              <div className="user-info-settings">
+                <span>{user.displayName}</span>
+                <span className="user-email">{user.email}</span>
+              </div>
+              <button onClick={handleLogout} className="logout-button">
+                ログアウト
               </button>
             </div>
-
-            {/* 日付切り替え時刻 */}
-            <div className="setting-item">
-              <label>1日の開始時刻</label>
-              <p className="setting-description">
-                この時刻を過ぎると「翌日」として扱われます
-              </p>
-              <select
-                value={dayStartHour}
-                onChange={(e) => saveSettings(Number(e.target.value))}
-              >
-                {[...Array(24)].map((_, hour) => (
-                  <option key={hour} value={hour}>
-                    {hour}:00
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="settings-footer">
-            <div className="user-info-settings">
-              <span>{user.displayName}</span>
-              <span className="user-email">{user.email}</span>
-            </div>
-            <button onClick={handleLogout} className="logout-button">
-              ログアウト
-            </button>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
-    {/* 習慣管理画面 */}
-    {showHabitManager && (
-      <div className="settings-overlay" onClick={() => setShowHabitManager(false)}>
-        <div className="settings-menu habit-manager" onClick={(e) => e.stopPropagation()}>
-          <div className="settings-header">
-            <h2>習慣の管理</h2>
-            <button onClick={() => {
-              setShowHabitManager(false);
-              setEditingId(null);
-              setEditingName('');
-            }}>✕</button>
-          </div>
+      {/* 習慣管理画面 */}
+      {showHabitManager && (
+        <div className="settings-overlay" onClick={() => setShowHabitManager(false)}>
+          <div className="settings-menu habit-manager" onClick={(e) => e.stopPropagation()}>
+            <div className="settings-header">
+              <h2>習慣の管理</h2>
+              <button onClick={() => {
+                setShowHabitManager(false);
+                setEditingId(null);
+                setEditingName('');
+              }}>✕</button>
+            </div>
 
-          <div className="settings-content">
-            {habits.length === 0 ? (
-              <p className="empty-message">習慣がまだありません</p>
-            ) : (
-              <div className="habit-manager-list">
-                {habits.map((habit) => (
-                  <div key={habit.id} className="habit-manager-item">
-                    {editingId === habit.id ? (
-                      // 編集モード
-                      <div className="habit-manager-edit">
-                        <input
-                          type="text"
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          autoFocus
-                        />
-                        <div className="habit-manager-edit-actions">
-                          <button onClick={() => handleUpdateHabit(habit.id)}>保存</button>
-                          <button onClick={() => {
-                            setEditingId(null);
-                            setEditingName('');
-                          }}>キャンセル</button>
+            <div className="settings-content">
+              {habits.length === 0 ? (
+                <p className="empty-message">習慣がまだありません</p>
+              ) : (
+                <div className="habit-manager-list">
+                  {habits.map((habit) => (
+                    <div key={habit.id} className="habit-manager-item">
+                      {editingId === habit.id ? (
+                        // 編集モード
+                        <div className="habit-manager-edit">
+                          <input
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            autoFocus
+                          />
+                          <div className="habit-manager-edit-actions">
+                            <button onClick={() => handleUpdateHabit(habit.id)}>保存</button>
+                            <button onClick={() => {
+                              setEditingId(null);
+                              setEditingName('');
+                            }}>キャンセル</button>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      // 通常モード
-                      <>
-                        <span className="habit-manager-name">{habit.name}</span>
-                        <div className="habit-manager-actions">
-                          <button
-                            onClick={() => {
-                              setEditingId(habit.id);
-                              setEditingName(habit.name);
-                            }}
-                          >
-                            編集
-                          </button>
-                          <button
-                            className="delete-button"
-                            onClick={() => handleDeleteHabit(habit.id, habit.name)}
-                          >
-                            削除
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                      ) : (
+                        // 通常モード
+                        <>
+                          <span className="habit-manager-name">{habit.name}</span>
+                          <div className="habit-manager-actions">
+                            <button
+                              onClick={() => {
+                                setEditingId(habit.id);
+                                setEditingName(habit.name);
+                              }}
+                            >
+                              編集
+                            </button>
+                            <button
+                              className="delete-button"
+                              onClick={() => handleDeleteHabit(habit.id, habit.name)}
+                            >
+                              削除
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
-    {/* 習慣追加フォーム */}
-    <form onSubmit={handleAddHabit} className="add-form">
-      <input
-        type="text"
-        value={newHabitName}
-        onChange={(e) => setNewHabitName(e.target.value)}
-        placeholder="新しい習慣を入力..."
-      />
-      <button type="submit">追加</button>
-    </form>
+      {/* 習慣追加フォーム */}
+      <form onSubmit={handleAddHabit} className="add-form">
+        <input
+          type="text"
+          value={newHabitName}
+          onChange={(e) => setNewHabitName(e.target.value)}
+          placeholder="新しい習慣を入力..."
+        />
+        <button type="submit">追加</button>
+      </form>
 
-    {/* 習慣一覧（並び替え可能） */}
-    <div className="habits-list">
-      {habits.length === 0 ? (
-        <p className="empty-message">習慣がまだありません。上のフォームから追加してください。</p>
-      ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragCancel={handleDragCancel}
-          modifiers={[restrictToVerticalAxis]}
-        >
-          <SortableContext
-            items={displayHabits.map(h => h.id)}
-            strategy={verticalListSortingStrategy}
+      {/* 習慣一覧（並び替え可能） */}
+      <div className="habits-list">
+        {habits.length === 0 ? (
+          <p className="empty-message">習慣がまだありません。上のフォームから追加してください。</p>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+            modifiers={[restrictToVerticalAxis]}
           >
-            {displayHabits.map((habit) => (
-              <SortableHabitItem
-                key={habit.id}
-                habit={habit}
-                todayStr={todayStr}
-                toggleHabit={handleToggleToday}
-                streak={calculateStreak(habit)}
-              />
-            ))}
-          </SortableContext>
-
-          <DragOverlay>
-            {activeId ? (() => {
-              const habit = habits.find(h => h.id === activeId);
-              return (
+            <SortableContext
+              items={displayHabits.map(h => h.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {displayHabits.map((habit) => (
                 <SortableHabitItem
+                  key={habit.id}
                   habit={habit}
                   todayStr={todayStr}
-                  toggleHabit={() => { }}
-                  isOverlay
+                  toggleHabit={handleToggleToday}
                   streak={calculateStreak(habit)}
                 />
-              );
-            })() : null}
-          </DragOverlay>
-        </DndContext>
-      )}
-    </div>
+              ))}
+            </SortableContext>
 
-  </div>
-);
+            <DragOverlay>
+              {activeId ? (() => {
+                const habit = habits.find(h => h.id === activeId);
+                return (
+                  <SortableHabitItem
+                    habit={habit}
+                    todayStr={todayStr}
+                    toggleHabit={() => { }}
+                    isOverlay
+                    streak={calculateStreak(habit)}
+                  />
+                );
+              })() : null}
+            </DragOverlay>
+          </DndContext>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default App;
