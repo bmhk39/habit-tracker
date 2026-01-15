@@ -10,6 +10,8 @@ export function SortableHabitItem({
     isOverlay,
     streak,
     onStartTimer,
+    onPauseTimer,
+    onResumeTimer,
     onStopTimer
 }) {
     const {
@@ -23,8 +25,6 @@ export function SortableHabitItem({
 
     const isDone = habit.logs?.[todayStr]?.done;
     const isTimerEnabled = habit.isTimerEnabled;
-    const isTimerRunning = !!habit.currentSession?.startTime;
-    const todayDuration = habit.logs?.[todayStr]?.duration || 0;
     const totalDuration = habit.totalDuration || 0;
 
     // Overlay（ドラッグ中の浮いている要素）のスタイル
@@ -47,10 +47,10 @@ export function SortableHabitItem({
                 <div className="habit-main">
                     {isTimerEnabled ? (
                         <TimerButton
-                            isRunning={isTimerRunning}
-                            startTime={habit.currentSession?.startTime}
-                            todayDuration={todayDuration}
+                            currentSession={habit.currentSession}
                             onStart={() => { }}
+                            onPause={() => { }}
+                            onResume={() => { }}
                             onStop={() => { }}
                         />
                     ) : (
@@ -59,7 +59,7 @@ export function SortableHabitItem({
                         </button>
                     )}
                     <span className="habit-name">{habit.name}</span>
-                    {totalDuration > 0 && (
+                    {isTimerEnabled && (
                         <span className="habit-total-duration">
                             {formatTotalDuration(totalDuration)}
                         </span>
@@ -92,10 +92,10 @@ export function SortableHabitItem({
             <div className="habit-main">
                 {isTimerEnabled ? (
                     <TimerButton
-                        isRunning={isTimerRunning}
-                        startTime={habit.currentSession?.startTime}
-                        todayDuration={todayDuration}
+                        currentSession={habit.currentSession}
                         onStart={onStartTimer}
+                        onPause={onPauseTimer}
+                        onResume={onResumeTimer}
                         onStop={onStopTimer}
                     />
                 ) : (
@@ -110,7 +110,7 @@ export function SortableHabitItem({
                     </button>
                 )}
                 <span className="habit-name">{habit.name}</span>
-                {totalDuration > 0 && (
+                {isTimerEnabled && (
                     <span className="habit-total-duration">
                         {formatTotalDuration(totalDuration)}
                     </span>

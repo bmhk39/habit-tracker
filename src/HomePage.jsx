@@ -325,29 +325,75 @@ export default function HomePage({ user, handleLogout }) {
 
   const handleStartTimer = async (habit) => {
     const startTime = new Date().toISOString();
+    // すでにセッション情報があればその日付を使う（再開時など）、なければ今日
+    const targetDate = habit.currentSession?.targetDate || todayStr;
+
     try {
       const habitRef = doc(db, 'users', user.uid, 'habits', habit.id);
       await updateDoc(habitRef, {
-        currentSession: { startTime },
-        [`logs.${todayStr}`]: {
+        currentSession: { startTime, elapsed: 0, targetDate },
+        [`logs.${targetDate}`]: {
           done: true,
           completedAt: startTime,
-          duration: habit.logs?.[todayStr]?.duration || 0,
-          memo: habit.logs?.[todayStr]?.memo || ''
+          duration: habit.logs?.[targetDate]?.duration || 0,
+          memo: habit.logs?.[targetDate]?.memo || ''
         }
       });
       loadHabits();
-      showSnackbar(`▶ ${habit.name} のタイマーを開始しました`, habit.id, habit.name);
+      showSnackbar(`▶ ${habit.name} を開始`, habit.id, habit.name);
     } catch (error) {
       console.error('タイマー開始エラー:', error);
       alert('タイマーの開始に失敗しました');
     }
   };
 
-  const handleStopTimer = async (habit) => {
+  const handlePauseTimer = async (habit) => {
     if (!habit.currentSession?.startTime) return;
     const startTime = new Date(habit.currentSession.startTime).getTime();
-    const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+    const runningSeconds = Math.floor((Date.now() - startTime) / 1000);
+    const newElapsed = (habit.currentSession.elapsed || 0) + runningSeconds;
+    const targetDate = habit.currentSession.targetDate || todayStr;
+
+    try {
+      const habitRef = doc(db, 'users', user.uid, 'habits', habit.id);
+      await updateDoc(habitRef, {
+        currentSession: { startTime: null, elapsed: newElapsed, targetDate }
+      });
+      loadHabits();
+      showSnackbar(`⏸ 一時停止`, habit.id, habit.name);
+    } catch (error) {
+      console.error('一時停止エラー:', error);
+    }
+  };
+
+  const handleResumeTimer = async (habit) => {
+    const startTime = new Date().toISOString();
+    // targetDateは既存のものを維持
+    const targetDate = habit.currentSession?.targetDate || todayStr;
+
+    try {
+      const habitRef = doc(db, 'users', user.uid, 'habits', habit.id);
+      await updateDoc(habitRef, {
+        'currentSession.startTime': startTime,
+        'currentSession.targetDate': targetDate
+      });
+      loadHabits();
+      showSnackbar(`▶ 再開`, habit.id, habit.name);
+    } catch (error) {
+      console.error('再開エラー:', error);
+    }
+  };
+
+  const handleStopTimer = async (habit) => {
+    // 現在の経過時間を計算
+    let totalElapsed = habit.currentSession?.elapsed || 0;
+    if (habit.currentSession?.startTime) {
+      const startTime = new Date(habit.currentSession.startTime).getTime();
+      totalElapsed += Math.floor((Date.now() - startTime) / 1000);
+    }
+
+    // 記録すべき日付（開始日）
+    const targetDate = habit.currentSession?.targetDate || todayStr;
 
     if (habit.isMemoEnabled) {
       setMemoModalState({
@@ -355,10 +401,11 @@ export default function HomePage({ user, handleLogout }) {
         habitId: habit.id,
         habitName: habit.name,
         pendingAction: 'stopTimer',
-        elapsedSeconds
+        elapsedSeconds: totalElapsed,
+        targetDate: targetDate // モーダル経由で保存するため日付を渡す
       });
     } else {
-      await saveTimerStop(habit.id, todayStr, elapsedSeconds, '');
+      await saveTimerStop(habit.id, targetDate, totalElapsed, '');
     }
   };
 
@@ -376,7 +423,8 @@ export default function HomePage({ user, handleLogout }) {
         [`logs.${dateStr}.memo`]: memo
       });
       loadHabits();
-      showSnackbar(`⏹ タイマーを停止しました (+${Math.floor(elapsedSeconds / 60)}分)`, habitId, habit?.name);
+      const mins = Math.floor(elapsedSeconds / 60);
+      showSnackbar(`⏹ 終了 (+${mins}分)`, habitId, habit?.name);
     } catch (error) {
       console.error('タイマー停止エラー:', error);
       alert('タイマーの停止に失敗しました');
@@ -442,9 +490,9 @@ export default function HomePage({ user, handleLogout }) {
   };
 
   const handleMemoSubmit = async (memo) => {
-    const { habitId, pendingAction, elapsedSeconds } = memoModalState;
+    const { habitId, pendingAction, elapsedSeconds, targetDate } = memoModalState;
     if (pendingAction === 'stopTimer') {
-      await saveTimerStop(habitId, todayStr, elapsedSeconds, memo);
+      await saveTimerStop(habitId, targetDate || todayStr, elapsedSeconds, memo);
     } else if (pendingAction === 'complete') {
       await saveComplete(habitId, todayStr, memo);
     }
@@ -591,6 +639,8 @@ export default function HomePage({ user, handleLogout }) {
                     toggleHabit={handleToggleToday}
                     streak={calculateStreak(habit)}
                     onStartTimer={() => handleStartTimer(habit)}
+                    onPauseTimer={() => handlePauseTimer(habit)}
+                    onResumeTimer={() => handleResumeTimer(habit)}
                     onStopTimer={() => handleStopTimer(habit)}
                   />
                 </div>

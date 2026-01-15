@@ -526,32 +526,52 @@ header h1 {
 .timer-button-container {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 .timer-button {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 2px solid #2196f3;
   background: white;
-  font-size: 1rem;
+  font-size: 0.9rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #2196f3;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .timer-button:hover {
   background-color: #e3f2fd;
+  transform: scale(1.05);
 }
 
-.timer-button.running {
+.timer-button.pause {
   background-color: #2196f3;
   color: white;
   animation: pulse 2s infinite;
+}
+
+.timer-button.resume {
+  border-color: #4caf50;
+  color: #4caf50;
+}
+
+.timer-button.resume:hover {
+  background-color: #e8f5e9;
+}
+
+.timer-button.stop {
+  border-color: #f44336;
+  color: #f44336;
+}
+
+.timer-button.stop:hover {
+  background-color: #ffebee;
 }
 
 @keyframes pulse {
@@ -570,9 +590,26 @@ header h1 {
 
 .timer-display {
   font-family: 'Roboto Mono', monospace;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: #333;
-  min-width: 70px;
+  min-width: 65px;
+}
+
+.timer-display.paused {
+  color: #ff9800;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
 }
 
 /* 累計時間表示 */
