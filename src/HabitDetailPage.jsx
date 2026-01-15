@@ -63,11 +63,21 @@ export default function HabitDetailPage({ user }) {
         }
     };
 
-    // 過去30日分の履歴データを生成
+    // 過去30日分の履歴データを生成（ただし作成日以前は除く）
     const generateHistory = (habitData) => {
         const logs = habitData.logs || {};
         const history = [];
         const now = new Date();
+
+        // Firestore Timestamp等の変換ヘルパー
+        const getMillis = (ts) => {
+            if (!ts) return 0;
+            if (typeof ts.toMillis === 'function') return ts.toMillis();
+            if (ts instanceof Date) return ts.getTime();
+            return new Date(ts).getTime();
+        };
+
+        const createdAt = getMillis(habitData.createdAt);
 
         // 今日の日付補正
         if (now.getHours() < dayStartHour) {
@@ -77,6 +87,10 @@ export default function HabitDetailPage({ user }) {
         for (let i = 0; i < 30; i++) {
             const d = new Date(now);
             d.setDate(d.getDate() - i);
+
+            // 作成日より前ならスキップ
+            const checkTime = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+            if (createdAt && checkTime < createdAt) continue;
 
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');

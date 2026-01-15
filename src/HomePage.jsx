@@ -548,12 +548,7 @@ export default function HomePage({ user, handleLogout }) {
               <button onClick={() => setShowSettings(false)}>✕</button>
             </div>
             <div className="settings-content">
-              <div className="setting-item">
-                <label>習慣の管理</label>
-                <button className="setting-link-button" onClick={() => { setShowSettings(false); setShowHabitManager(true); }}>
-                  習慣を編集・削除する →
-                </button>
-              </div>
+
               <div className="setting-item">
                 <label>1日の開始時刻</label>
                 <p className="setting-description">この時刻を過ぎると「翌日」として扱われます</p>
@@ -573,48 +568,7 @@ export default function HomePage({ user, handleLogout }) {
         </div>
       )}
 
-      {/* 習慣管理（編集・削除） */}
-      {showHabitManager && (
-        <div className="settings-overlay" onClick={() => setShowHabitManager(false)}>
-          <div className="settings-menu habit-manager" onClick={(e) => e.stopPropagation()}>
-            <div className="settings-header">
-              <h2>習慣の管理</h2>
-              <button onClick={() => { setShowHabitManager(false); setEditingId(null); }}>✕</button>
-            </div>
-            <div className="settings-content">
-              {habits.length === 0 ? <p className="empty-message">習慣がありません</p> : (
-                <div className="habit-manager-list">
-                  {habits.map((habit) => (
-                    <div key={habit.id} className="habit-manager-item">
-                      {editingId === habit.id ? (
-                        <div className="habit-manager-edit">
-                          <input type="text" value={editingName} onChange={(e) => setEditingName(e.target.value)} autoFocus />
-                          <div className="habit-manager-edit-actions">
-                            <button onClick={() => handleUpdateHabit(habit.id)}>保存</button>
-                            <button onClick={() => { setEditingId(null); setEditingName(''); }}>キャンセル</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <span className="habit-manager-name">
-                            {habit.name}
-                            {habit.isTimerEnabled && ' ⏱'}
-                            {habit.isMemoEnabled && ' 📝'}
-                          </span>
-                          <div className="habit-manager-actions">
-                            <button onClick={() => { setEditingId(habit.id); setEditingName(habit.name); }}>編集</button>
-                            <button className="delete-button" onClick={() => handleDeleteHabit(habit.id, habit.name)}>削除</button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* 習慣追加フォーム */}
       <form onSubmit={handleAddHabit} className="add-form">
