@@ -1,8 +1,17 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { TimerButton, formatTotalDuration } from './TimerButton';
 
-export function SortableHabitItem({ habit, todayStr, toggleHabit, isOverlay, streak }) {
+export function SortableHabitItem({
+    habit,
+    todayStr,
+    toggleHabit,
+    isOverlay,
+    streak,
+    onStartTimer,
+    onStopTimer
+}) {
     const {
         attributes,
         listeners,
@@ -11,6 +20,12 @@ export function SortableHabitItem({ habit, todayStr, toggleHabit, isOverlay, str
         transition,
         isDragging,
     } = useSortable({ id: habit.id });
+
+    const isDone = habit.logs?.[todayStr]?.done;
+    const isTimerEnabled = habit.isTimerEnabled;
+    const isTimerRunning = !!habit.currentSession?.startTime;
+    const todayDuration = habit.logs?.[todayStr]?.duration || 0;
+    const totalDuration = habit.totalDuration || 0;
 
     // Overlay（ドラッグ中の浮いている要素）のスタイル
     if (isOverlay) {
@@ -30,13 +45,25 @@ export function SortableHabitItem({ habit, todayStr, toggleHabit, isOverlay, str
                 }}
             >
                 <div className="habit-main">
-                    {/* Overlay中はボタン操作無効なので見た目だけ */}
-                    <button
-                        className={`toggle-button ${habit.logs?.[todayStr]?.done ? 'done' : ''}`}
-                    >
-                        {habit.logs?.[todayStr]?.done ? '✓' : '○'}
-                    </button>
+                    {isTimerEnabled ? (
+                        <TimerButton
+                            isRunning={isTimerRunning}
+                            startTime={habit.currentSession?.startTime}
+                            todayDuration={todayDuration}
+                            onStart={() => { }}
+                            onStop={() => { }}
+                        />
+                    ) : (
+                        <button className={`toggle-button ${isDone ? 'done' : ''}`}>
+                            {isDone ? '✓' : '○'}
+                        </button>
+                    )}
                     <span className="habit-name">{habit.name}</span>
+                    {totalDuration > 0 && (
+                        <span className="habit-total-duration">
+                            {formatTotalDuration(totalDuration)}
+                        </span>
+                    )}
                 </div>
                 {streak > 0 && (
                     <span className="habit-streak">🔥{streak}日</span>
@@ -49,9 +76,9 @@ export function SortableHabitItem({ habit, todayStr, toggleHabit, isOverlay, str
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.3 : 1, // ドラッグ元の場所は薄く表示
-        touchAction: 'none', // スクロール干渉防止
-        WebkitTouchCallout: 'none', // iOS長押しメニュー防止
+        opacity: isDragging ? 0.3 : 1,
+        touchAction: 'none',
+        WebkitTouchCallout: 'none',
     };
 
     return (
@@ -63,16 +90,31 @@ export function SortableHabitItem({ habit, todayStr, toggleHabit, isOverlay, str
             className="habit-item"
         >
             <div className="habit-main">
-                <button
-                    className={`toggle-button ${habit.logs?.[todayStr]?.done ? 'done' : ''}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        toggleHabit(habit);
-                    }}
-                >
-                    {habit.logs?.[todayStr]?.done ? '✓' : '○'}
-                </button>
+                {isTimerEnabled ? (
+                    <TimerButton
+                        isRunning={isTimerRunning}
+                        startTime={habit.currentSession?.startTime}
+                        todayDuration={todayDuration}
+                        onStart={onStartTimer}
+                        onStop={onStopTimer}
+                    />
+                ) : (
+                    <button
+                        className={`toggle-button ${isDone ? 'done' : ''}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toggleHabit(habit);
+                        }}
+                    >
+                        {isDone ? '✓' : '○'}
+                    </button>
+                )}
                 <span className="habit-name">{habit.name}</span>
+                {totalDuration > 0 && (
+                    <span className="habit-total-duration">
+                        {formatTotalDuration(totalDuration)}
+                    </span>
+                )}
             </div>
             {streak > 0 && (
                 <span className="habit-streak">🔥{streak}日</span>

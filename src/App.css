@@ -333,7 +333,7 @@ header h1 {
 .add-form {
   display: flex;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
 }
 
 .add-form input {
@@ -358,6 +358,7 @@ header h1 {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-top: 20px;
 }
 
 .empty-message {
@@ -369,11 +370,22 @@ header h1 {
 .habit-item {
   background: white;
   padding: 15px;
-  border-radius: 8px;
+  border-radius: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+}
+
+.habit-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.habit-item:active {
+  transform: translateY(0);
 }
 
 .habit-main {
@@ -506,4 +518,451 @@ header h1 {
 .log-day.done {
   color: #4caf50;
   font-weight: bold;
+}
+
+/* ==================== */
+/* タイマーボタン */
+/* ==================== */
+.timer-button-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.timer-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #2196f3;
+  background: white;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2196f3;
+  transition: all 0.2s ease;
+}
+
+.timer-button:hover {
+  background-color: #e3f2fd;
+}
+
+.timer-button.running {
+  background-color: #2196f3;
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(33, 150, 243, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
+  }
+}
+
+.timer-display {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.95rem;
+  color: #333;
+  min-width: 70px;
+}
+
+/* 累計時間表示 */
+.habit-total-duration {
+  font-size: 0.8rem;
+  color: #666;
+  background-color: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
+/* ==================== */
+/* メモモーダル */
+/* ==================== */
+.memo-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1500;
+}
+
+.memo-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.memo-modal h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+}
+
+.memo-modal-label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.memo-modal textarea {
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.memo-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.memo-skip-button {
+  flex: 1;
+  padding: 12px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.memo-skip-button:hover {
+  background: #eee;
+}
+
+.memo-submit-button {
+  flex: 1;
+  padding: 12px;
+  background: #333;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.memo-submit-button:hover {
+  background: #555;
+}
+
+/* ==================== */
+/* 習慣追加フォーム拡張 */
+/* ==================== */
+.add-form-options {
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
+  padding: 10px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.add-form-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+
+/* ==================== */
+/* 習慣詳細ページ */
+/* ==================== */
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.back-link {
+  text-decoration: none;
+  font-size: 1rem;
+  color: #333;
+  padding: 8px 12px;
+  background: #fff;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.detail-total {
+  font-size: 0.9rem;
+  color: #666;
+  background: #eee;
+  padding: 6px 12px;
+  border-radius: 12px;
+}
+
+.detail-name-section {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.detail-name-section h1 {
+  font-size: 1.8rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.edit-icon {
+  font-size: 1rem;
+  color: #999;
+}
+
+.name-edit-box {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.name-edit-box input {
+  font-size: 1.5rem;
+  padding: 5px;
+  width: 70%;
+}
+
+.name-edit-box button {
+  padding: 5px 15px;
+  font-size: 1rem;
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* 設定トグルエリア */
+.detail-settings {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.toggle-row:last-child {
+  border-bottom: none;
+}
+
+.toggle-row input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+/* 履歴リスト */
+.history-section h2 {
+  font-size: 1.2rem;
+  margin-bottom: 15px;
+  color: #444;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.history-item:hover {
+  background: #fdfdfd;
+}
+
+.history-item.missed {
+  border-left: 4px solid #ddd;
+}
+
+.history-item.done {
+  border-left: 4px solid #4caf50;
+}
+
+.history-item.today {
+  border: 2px solid #2196f3;
+}
+
+.history-date {
+  width: 60px;
+  font-weight: bold;
+  color: #555;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+
+.today-badge {
+  font-size: 0.6rem;
+  background: #2196f3;
+  color: white;
+  padding: 2px 4px;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+
+.history-status {
+  width: 40px;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.check-mark {
+  color: #4caf50;
+}
+
+.miss-mark {
+  color: #ddd;
+}
+
+.history-info {
+  margin-left: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.history-duration {
+  font-size: 0.85rem;
+  background: #f0f0f0;
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+
+.history-memo {
+  font-size: 0.85rem;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.delete-habit-btn {
+  display: block;
+  margin: 50px auto 20px;
+  background: transparent;
+  color: #e53935;
+  border: 1px solid #e53935;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.delete-habit-btn:hover {
+  background: #ffebee;
+}
+
+/* 汎用モーダル */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+}
+
+.modal-form-group {
+  margin-bottom: 15px;
+}
+
+.modal-form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.modal-form-group input[type="text"],
+.modal-form-group input[type="number"],
+.modal-form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.modal-form-group .hint {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.modal-actions button {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.modal-actions button.primary {
+  background: #333;
+  color: white;
+  border: none;
 }
