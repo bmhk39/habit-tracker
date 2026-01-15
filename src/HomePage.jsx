@@ -310,13 +310,26 @@ export default function HomePage({ user, handleLogout }) {
     const now = new Date();
     if (now.getHours() < dayStartHour) now.setDate(now.getDate() - 1);
 
-    for (let i = 0; i < 365; i++) {
+    // 今日の日付文字列
+    const getYMD = (date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
+    const todayYMD = getYMD(now);
+
+    // 今日達成していなければ昨日からチェック開始
+    let startOffset = 0;
+    if (!logs[todayYMD]?.done) {
+      startOffset = 1;
+    }
+
+    for (let i = startOffset; i < 365; i++) {
       const checkDate = new Date(now);
       checkDate.setDate(checkDate.getDate() - i);
-      const y = checkDate.getFullYear();
-      const m = String(checkDate.getMonth() + 1).padStart(2, '0');
-      const d = String(checkDate.getDate()).padStart(2, '0');
-      const dateStr = `${y}-${m}-${d}`;
+      const dateStr = getYMD(checkDate);
+
       if (logs[dateStr]?.done) streak++;
       else break;
     }
