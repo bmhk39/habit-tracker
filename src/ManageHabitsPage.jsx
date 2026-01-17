@@ -74,7 +74,6 @@ function SortableManageItem({ habit, onNavigate, onMenuToggle, activeMenuId }) {
             <span className="manage-item-name">{habit.name}</span>
             <div className="manage-item-actions">
                 <button className="menu-button" onClick={handleMenuClick}>︙</button>
-                <span className="navigate-icon">›</span>
             </div>
             {activeMenuId === habit.id && (
                 <div className="manage-item-menu">
