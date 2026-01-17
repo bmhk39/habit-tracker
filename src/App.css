@@ -1136,3 +1136,13 @@ header h1 {
   border-radius: 8px;
   margin-top: 10px;
 }
+
+/* メニュー用バックドロップ */
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: transparent;
+  /* デバッグ時は以下を有効にして範囲確認 */
+  /* background: rgba(255, 0, 0, 0.1); */
+}

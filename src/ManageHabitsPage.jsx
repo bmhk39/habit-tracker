@@ -118,14 +118,8 @@ export default function ManageHabitsPage({ user }) {
         if (user) loadHabits();
     }, [user]);
 
-    // オーバーレイクリックでメニューを閉じる
-    useEffect(() => {
-        const handleClickOutside = () => setActiveMenuId(null);
-        if (activeMenuId) {
-            document.addEventListener('click', handleClickOutside);
-            return () => document.removeEventListener('click', handleClickOutside);
-        }
-    }, [activeMenuId]);
+    // document.addEventListenerでの制御は廃止し、.menu-backdropで制御する
+    // これにより誤って下の要素をクリックすることを防ぐ
 
     const loadHabits = async () => {
         try {
@@ -283,6 +277,9 @@ export default function ManageHabitsPage({ user }) {
 
             {/* 習慣一覧 */}
             <div className="manage-list">
+                {activeMenuId && (
+                    <div className="menu-backdrop" onClick={() => setActiveMenuId(null)} />
+                )}
                 {habits.length === 0 ? (
                     <p className="empty-message">習慣を追加してください</p>
                 ) : (
