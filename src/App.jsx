@@ -4,6 +4,7 @@ import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import HomePage from './HomePage';
 import HabitDetailPage from './HabitDetailPage';
+import ManageHabitsPage from './ManageHabitsPage';
 import './App.css';
 
 function App() {
@@ -67,6 +68,10 @@ function App() {
         <Route
           path="/habits/:id"
           element={<HabitDetailPage user={user} />}
+        />
+        <Route
+          path="/manage-habits"
+          element={<ManageHabitsPage user={user} />}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

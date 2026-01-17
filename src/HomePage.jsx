@@ -52,9 +52,6 @@ export default function HomePage({ user, handleLogout }) {
 
   // ===== 状態管理 =====
   const [habits, setHabits] = useState([]);
-  const [newHabitName, setNewHabitName] = useState('');
-  const [newHabitTimerEnabled, setNewHabitTimerEnabled] = useState(false);
-  const [newHabitMemoEnabled, setNewHabitMemoEnabled] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [dayStartHour, setDayStartHour] = useState(4);
   const [todayStr, setTodayStr] = useState(() => getTodayString(4));
@@ -190,34 +187,7 @@ export default function HomePage({ user, handleLogout }) {
     }
   };
 
-  const handleAddHabit = async (e) => {
-    e.preventDefault();
-    if (!newHabitName.trim()) return;
 
-    const nextOrder = habits.length > 0
-      ? Math.max(...habits.map(h => (h.order !== undefined ? h.order : -1))) + 1
-      : 0;
-
-    try {
-      const habitsRef = collection(db, 'users', user.uid, 'habits');
-      await addDoc(habitsRef, {
-        name: newHabitName.trim(),
-        createdAt: serverTimestamp(),
-        order: nextOrder,
-        isTimerEnabled: newHabitTimerEnabled,
-        isMemoEnabled: newHabitMemoEnabled,
-        totalDuration: 0,
-        currentSession: null
-      });
-      setNewHabitName('');
-      setNewHabitTimerEnabled(false);
-      setNewHabitMemoEnabled(false);
-      loadHabits();
-    } catch (error) {
-      console.error('習慣の追加エラー:', error);
-      alert('習慣の追加に失敗しました');
-    }
-  };
 
   const handleUpdateHabit = async (habitId) => {
     if (!editingName.trim()) return;
@@ -548,6 +518,14 @@ export default function HomePage({ user, handleLogout }) {
               <button onClick={() => setShowSettings(false)}>✕</button>
             </div>
             <div className="settings-content">
+              <div className="setting-item">
+                <button
+                  className="setting-link-button"
+                  onClick={() => { setShowSettings(false); navigate('/manage-habits'); }}
+                >
+                  習慣を管理・追加する →
+                </button>
+              </div>
 
               <div className="setting-item">
                 <label>1日の開始時刻</label>
@@ -570,21 +548,6 @@ export default function HomePage({ user, handleLogout }) {
 
 
 
-      {/* 習慣追加フォーム */}
-      <form onSubmit={handleAddHabit} className="add-form">
-        <input type="text" value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} placeholder="新しい習慣を入力..." />
-        <button type="submit">追加</button>
-      </form>
-      <div className="add-form-options">
-        <label className="add-form-option">
-          <input type="checkbox" checked={newHabitTimerEnabled} onChange={(e) => setNewHabitTimerEnabled(e.target.checked)} />
-          時間計測
-        </label>
-        <label className="add-form-option">
-          <input type="checkbox" checked={newHabitMemoEnabled} onChange={(e) => setNewHabitMemoEnabled(e.target.checked)} />
-          メモ機能
-        </label>
-      </div>
 
       {/* 習慣リスト */}
       <div className="habits-list">

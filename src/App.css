@@ -1003,3 +1003,141 @@ header h1 {
   color: white;
   border: none;
 }
+
+/* ==================== */
+/* 習慣管理ページ */
+/* ==================== */
+.manage-page .manage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #ddd;
+}
+
+.manage-page .manage-header h1 {
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.manage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.manage-item {
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 12px 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.manage-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
+
+.manage-item.overlay {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.manage-item-drag {
+  font-size: 1.2rem;
+  color: #aaa;
+  cursor: grab;
+  padding: 5px 10px 5px 0;
+  touch-action: none;
+}
+
+.manage-item-drag:active {
+  cursor: grabbing;
+}
+
+.manage-item-name {
+  flex: 1;
+  font-size: 1rem;
+}
+
+.manage-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.manage-item-actions .menu-button {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  padding: 8px;
+  cursor: pointer;
+  color: #666;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.manage-item-actions .menu-button:hover {
+  background: #f0f0f0;
+  border-radius: 50%;
+}
+
+.manage-item-actions .navigate-icon {
+  font-size: 1.2rem;
+  color: #ccc;
+}
+
+/* 三点メニュードロップダウン */
+.manage-item-menu {
+  position: absolute;
+  right: 50px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.manage-item-menu button {
+  display: block;
+  width: 100%;
+  padding: 12px 20px;
+  background: white;
+  border: none;
+  text-align: left;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.manage-item-menu button:hover {
+  background: #f5f5f5;
+}
+
+.manage-item-menu button.delete {
+  color: #e53935;
+}
+
+.manage-item-menu button.delete:hover {
+  background: #ffebee;
+}
+
+/* モーダル内input */
+.modal-content input[type="text"] {
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-top: 10px;
+}
