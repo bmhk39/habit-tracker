@@ -1037,14 +1037,12 @@ header h1 {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   position: relative;
   cursor: pointer;
-  /* transition: transform 0.15s, box-shadow 0.15s;  ← 削除: タップで動かないようにする */
+  /* transitionは削除 */
 }
 
-/* ホバー時の動きはPCのみ（メディアクエリを入れるのがベストだが簡易的に削除でも可）*/
-/* 今回は「浮く」のが嫌とのことなので動きを消す */
+/* ホバー/タップ時のエフェクトを削除 */
 .manage-item:hover {
-  /* transform: translateY(-1px); */
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+  /* 何もしない */
 }
 
 /* ドラッグ中のアイテム（オーバーレイ）のみ浮かす */
